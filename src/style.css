@@ -112,3 +112,31 @@ details.enso>summary span{flex:1;color:#365044}details.enso>summary em{font-styl
 .profit-line{font-weight:750;font-size:14px;margin:8px 0}.profit-line span{font-weight:600;color:#205c41;font-size:12.5px}
 .more-details{border-top:1px solid #e9f0ea;margin-top:8px;padding-top:4px}
 @media(max-width:860px){.dictionary,.source-row{grid-template-columns:1fr}.dict-answer{position:static}}
+/* Talhão */
+.soil-cards{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+.area-field{display:grid;gap:5px;font-size:12px;font-weight:650;color:#334d40;margin-top:12px;max-width:220px}
+.market-group{margin-bottom:10px}.market-group small{display:block;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.toggles{display:grid;gap:8px}
+.toggle-card{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;text-align:left;background:#fff;border:1px solid #d5e1d7;border-radius:12px;padding:14px;cursor:pointer;color:#243b30}
+.toggle-card strong{display:block;font-size:15px}.toggle-card small{font-size:12.5px;color:var(--muted)}.toggle-icon{font-size:24px}
+.toggle-card.picked{border-color:#13844f;background:#f0f8ec}
+.switch{width:42px;height:24px;border-radius:12px;background:#d5e1d7;position:relative;transition:.2s}.switch i{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 2px #0003}
+.toggle-card.picked .switch{background:#13844f}.toggle-card.picked .switch i{left:21px}
+/* Plano */
+.season-plan{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.season-plan li{padding:14px;display:grid;gap:8px;border-top:4px solid #e0a95b}.season-plan li.cover{border-top-color:#13844f}
+.season-head{display:flex;gap:10px;align-items:center}.season-head small{display:block;font-size:11px;color:var(--muted)}.season-head strong{font-size:16px}
+.season-num{flex:none;width:28px;height:28px;border-radius:50%;background:#eaf3e9;color:#13844f;display:grid;place-items:center;font-weight:800;font-size:13px}
+.season-months{margin-left:auto;font-size:11px;font-weight:700;background:#f2f8f2;color:#205c41;padding:4px 8px;border-radius:12px;white-space:nowrap}
+.season-plan p{font-size:13px;line-height:1.5;color:#334d40}.season-facts{display:flex;gap:12px;font-size:12.5px;font-weight:700}.season-benefit{color:#205c41;font-size:12px}
+.plan-extra{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.goals,.watch{margin:0;padding-left:18px;display:grid;gap:8px;font-size:13.5px;line-height:1.5}.goals b{color:#13844f}.watch li{color:#6b4d0e}
+/* Fontes */
+.source-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;align-items:start}
+.source-box>summary{list-style:none;cursor:pointer;padding:16px;display:grid;gap:4px;min-height:110px;align-content:start}.source-box>summary::-webkit-details-marker{display:none}
+.source-box strong{color:#13844f;font-size:15px}.source-box small{font-size:12px;color:var(--muted)}
+.open-hint{margin-top:auto;padding-top:10px;font-size:12px;font-weight:700;color:var(--green)}.open-hint::after{content:' ▾'}.source-box[open] .open-hint::after{content:' ▴'}
+.source-box[open]{border-color:#13844f;box-shadow:0 0 0 3px #13844f1a}.source-box[open] .open-hint{display:none}
+.source-box>p,.source-box>a{margin:0 16px 10px;font-size:13px;line-height:1.5;color:#334d40;display:block}.source-box>a{font-weight:700;color:var(--green);margin-bottom:16px}
+@media(max-width:860px){.plan-extra{grid-template-columns:1fr}}
+.source-box[open]>summary{min-height:0}

@@ -90,6 +90,15 @@ describe('rotação de culturas', () => {
     const custom = compare({ ...defaultFarm, priority: 'profit', prices: { corn: { price: 100 } } }, climate).find((s) => s.id === 'corn')!
     expect(custom.revenueHa).toBe(110 * 100)
   })
+  it('considera tipos de solo e mercados extras', () => {
+    const wet = compare({ ...defaultFarm, crop: 'corn', month: 9, soil: 'wet', markets: ['rice', 'soybean', 'coffee'] }, climate)
+    const soy = wet.find((s) => s.id === 'soybean')
+    expect(soy?.risks.some((r) => r.includes('encharcado'))).toBe(true)
+    expect(alternativesOf(wet).every((s) => crops[s.id as Crop].kind === 'cobertura' || ['rice', 'soybean'].includes(s.id))).toBe(true)
+    expect(regionProblems(climate, null, impact, 'shallow').some((p) => p.title === 'Solo raso')).toBe(true)
+    const plan = longTermPlan(defaultFarm, compare(defaultFarm, climate), climate, impact)
+    expect(plan.seasons.every((s) => s.action && s.months && Number.isFinite(s.profitHa))).toBe(true)
+  })
   it('recalcula com o cenário "e se"', () => {
     const dry = applyScenario(climate, -40, 2)
     expect(dry.rain!).toBeCloseTo(climate.rain! * 0.6)

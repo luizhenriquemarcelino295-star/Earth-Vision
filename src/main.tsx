@@ -2,7 +2,7 @@ import { useRef, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { createRoot } from 'react-dom/client'
 import { CircleMarker, MapContainer, TileLayer, Tooltip as MapTooltip, useMap, useMapEvents } from 'react-leaflet'
 import { Area, Bar, CartesianGrid, ComposedChart, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { Pause, Play, AlertTriangle, ArrowLeft, BookOpen, Mountain, Snowflake, UserCheck, ArrowRight, Check, CloudRain, Coins, Droplets, FileDown, Flame, Globe2, Leaf, LocateFixed, MapPin, Satellite, Search, Sprout, Sun, Thermometer, TrendingUp, Waves } from 'lucide-react'
+import { Pause, Play, AlertTriangle, ArrowLeft, BookOpen, Mountain, Snowflake, ArrowRight, Check, CloudRain, Coins, Droplets, FileDown, Flame, Globe2, Leaf, LocateFixed, MapPin, Satellite, Search, Sprout, Sun, Thermometer, TrendingUp, Waves } from 'lucide-react'
 import '@fontsource-variable/inter'
 import 'leaflet/dist/leaflet.css'
 import './style.css'
@@ -12,7 +12,7 @@ import { locateMe, searchPlaces, type Place } from './geo'
 import { ensoDocs, ensoImpact, ensoOutlook, phaseNames, yearPhase, type Phase } from './enso'
 import { challengeSteps, dataSources, glossary } from './challenge'
 import { fetchTerrain, srtmDocs, type Terrain } from './terrain'
-import { alternativesOf, compare, criteria, vulnerabilityCalendar, cropList, crops, defaultFarm, economics, embrapa, fao, limits, longTermPlan, methodology, priorities, regionProblems, seasonOf, soils, weights, type Crop, type Farm, type Scenario } from './rotation'
+import { alternativesOf, marketGroups, compare, criteria, vulnerabilityCalendar, cropList, crops, defaultFarm, economics, embrapa, fao, limits, longTermPlan, methodology, priorities, regionProblems, seasonOf, soils, weights, type Crop, type Farm, type Scenario } from './rotation'
 
 function readSaved<T>(key: string, fallback: T, validate: (value: T) => boolean): T {
   try {
@@ -24,7 +24,7 @@ function save(key: string, value: unknown) {
   try { localStorage.setItem(key, JSON.stringify(value)) } catch { /* opcional */ }
 }
 const money = (value: number) => 'R$ ' + Math.round(value).toLocaleString('pt-BR')
-const validFarm = (v: Farm) => Object.hasOwn(crops, v.crop) && Object.hasOwn(soils, v.soil) && Object.hasOwn(priorities, v.priority) && typeof v.name === 'string' && typeof v.area === 'string' && typeof v.irrigated === 'boolean' && Number.isInteger(v.month) && v.month >= 0 && v.month < 12 && typeof v.prices === 'object' && Array.isArray(v.markets) && typeof v.cattle === 'boolean' && typeof v.smallSeedPlanter === 'boolean'
+const validFarm = (v: Farm) => Object.hasOwn(crops, v.crop) && Object.hasOwn(soils, v.soil) && Object.hasOwn(priorities, v.priority) && typeof v.name === 'string' && typeof v.area === 'string' && typeof v.irrigated === 'boolean' && Number.isInteger(v.month) && v.month >= 0 && v.month < 12 && typeof v.prices === 'object' && Array.isArray(v.markets) && v.markets.every((m) => typeof m === 'string') && typeof v.cattle === 'boolean' && typeof v.smallSeedPlanter === 'boolean'
 const steps = [
   { id: 'local', title: 'Onde fica', icon: MapPin },
   { id: 'clima', title: 'Clima e problemas', icon: CloudRain },
@@ -220,7 +220,6 @@ function App() {
             <span className="dot">{index < step ? <Check size={15} /> : <Icon size={15} />}</span><span><small>Passo {index + 1}</small>{item.title}</span></button></li>
         })}</ol>
 
-        <p className="support"><UserCheck size={16} /> Use os resultados como ponto de partida para conversar com seu agrônomo.</p>
         <div className="context-bar"><span><MapPin size={14} /> {location.name}</span><span><CloudRain size={14} /> Clima de {year}</span><span><Sprout size={14} /> {crops[farm.crop].name} · {season.name}</span><span>{priorities[farm.priority].icon} {priorities[farm.priority].name}</span>{(rainPct !== 0 || tempDelta !== 0) && <span className="scenario-chip">Cenário: chuva {rainPct > 0 ? '+' : ''}{rainPct}% · +{tempDelta} °C</span>}</div>
 
         {step === 0 && <section className="section step-panel">
@@ -273,21 +272,27 @@ function App() {
               <div className="months">{monthNames.map((m, i) => <button key={m} className={'chip ' + (i === farm.month ? 'picked' : '')} onClick={() => update('month', i)}>{m}</button>)}</div>
               <p className="season"><b>{season.name}.</b> {season.text}{climate?.months[farm.month].rain != null && <> Chuva histórica em {monthNames[farm.month]}: {format(climate.months[farm.month].rain, 0)} mm.</>}</p>
               <h3>O que está plantado agora (ou foi colhido)?</h3>
-              <div className="crop-cards">{[...cropList].sort((a, b) => crops[a].name.localeCompare(crops[b].name, 'pt-BR')).map((key) => <button key={key} type="button" aria-pressed={key === farm.crop} className={'crop-card ' + (key === farm.crop ? 'picked' : '')} onClick={() => update('crop', key)}><strong>{crops[key].name}</strong><small>{crops[key].kind} · {crops[key].family}</small></button>)}</div>
+              <div className="crop-cards">{cropList.map((key) => <button key={key} className={'crop-card ' + (key === farm.crop ? 'picked' : '')} onClick={() => update('crop', key)}><strong>{crops[key].name}</strong><small>{crops[key].kind} · {crops[key].family}</small></button>)}</div>
               <p className="hint">{crops[farm.crop].description}</p>
             </div>
             <div className="panel pad">
               <h3>Tipo de solo</h3>
-              <div className="chips">{Object.entries(soils).map(([key, soil]) => <button key={key} className={'chip ' + (key === farm.soil ? 'picked' : '')} onClick={() => update('soil', key as Farm['soil'])}>{soil.name}</button>)}</div>
+              <div className="crop-cards soil-cards">{Object.entries(soils).map(([key, soil]) => <button key={key} className={'crop-card ' + (key === farm.soil ? 'picked' : '')} onClick={() => update('soil', key as Farm['soil'])}><strong>{soil.name}</strong></button>)}</div>
               <p className="hint">{soils[farm.soil].text}</p>
-              <div className="field-grid"><label>Nome da fazenda<input placeholder="Opcional" maxLength={100} value={farm.name} onChange={(e) => update('name', e.target.value)} /></label>
-                <label>Área do talhão (ha)<input type="number" min="0" step="any" value={farm.area} onChange={(e) => update('area', e.target.value)} /></label></div>
-              <label className="checkbox"><input type="checkbox" checked={farm.irrigated} onChange={(e) => update('irrigated', e.target.checked)} /> Tenho irrigação neste talhão</label>
-              <h3>Suas restrições</h3>
-              <p className="hint">Culturas de grão que você consegue vender na região:</p>
-              <div className="chips">{cropList.filter((c) => crops[c].kind !== 'cobertura').map((c) => <button key={c} className={'chip ' + (farm.markets.includes(c) ? 'picked' : '')} onClick={() => update('markets', farm.markets.includes(c) ? farm.markets.filter((x) => x !== c) : [...farm.markets, c])}>{farm.markets.includes(c) ? '✓ ' : ''}{crops[c].name}</button>)}</div>
-              <label className="checkbox"><input type="checkbox" checked={farm.smallSeedPlanter} onChange={(e) => update('smallSeedPlanter', e.target.checked)} /> Tenho plantadeira para sementes miúdas (milheto, braquiária, crotalária, aveia)</label>
-              <label className="checkbox"><input type="checkbox" checked={farm.cattle} onChange={(e) => update('cattle', e.target.checked)} /> Tenho gado (forragem tem valor para mim)</label>
+              <label className="area-field">Área do talhão (ha)<input type="number" min="0" step="any" value={farm.area} onChange={(e) => update('area', e.target.value)} /></label>
+              <h3>O que você consegue vender na região?</h3>
+              {marketGroups.map((g) => <div key={g.group} className="market-group"><small>{g.group}</small><div className="chips">{g.items.map((c) => {
+                const on = farm.markets.includes(c.id)
+                return <button key={c.id} className={'chip ' + (on ? 'picked' : '')} aria-pressed={on} onClick={() => update('markets', on ? farm.markets.filter((x) => x !== c.id) : [...farm.markets, c.id])}>{on ? '✓ ' : ''}{c.name}</button>
+              })}</div></div>)}
+              <p className="hint">Só os grãos e fibras marcados entram nas propostas. Plantas de cobertura sempre aparecem, porque não dependem de venda.</p>
+              <h3>Sua estrutura</h3>
+              <div className="toggles">{([
+                ['irrigated', '💧', 'Irrigação', 'Tenho irrigação neste talhão'],
+                ['smallSeedPlanter', '🚜', 'Plantadeira de sementes miúdas', 'Para milheto, braquiária, crotalária, aveia e nabo'],
+                ['cattle', '🐄', 'Gado', 'A forragem tem valor para mim'],
+              ] as const).map(([key, icon, title, text]) => <button key={key} className={'toggle-card ' + (farm[key] ? 'picked' : '')} aria-pressed={farm[key]} onClick={() => update(key, !farm[key])}>
+                <span className="toggle-icon">{icon}</span><span><strong>{title}</strong><small>{text}</small></span><span className="switch" aria-hidden="true"><i /></span></button>)}</div>
               <h3>O que é mais importante para você?</h3>
               <div className="priority-cards">{Object.entries(priorities).map(([key, p]) => <button key={key} className={'priority-card ' + (key === farm.priority ? 'picked' : '')} onClick={() => update('priority', key as Farm['priority'])}><span>{p.icon}</span><strong>{p.name}</strong><small>{p.text}</small></button>)}</div>
             </div>
@@ -355,17 +360,32 @@ function App() {
                   <Bar dataKey="Com rotação" fill="#8acdb0" radius={[4, 4, 0, 0]} /><Line dataKey="Sem rotação" stroke="#888" strokeDasharray="5 4" />
                 </ComposedChart></ResponsiveContainer></div></div>
             </div>
-            <h3 className="sub">Calendário sugerido</h3>
-            <ol className="timeline">{plan.seasons.map((s) => <li key={s.label} className="panel"><small>{s.label}</small><strong>{s.crop}</strong></li>)}</ol>
-            <div className="panel report-card"><div className="report-cover"><span>PDF</span><b>Relatório da sua fazenda</b><small>{location.name}</small></div>
-              <div className="report-body"><h3>Seu relatório está pronto</h3><p>Montado com as suas respostas, em linguagem simples, para ler e levar ao agrônomo.</p>
-                <ul className="report-list"><li><Check size={14} /> Resumo para você e suas respostas</li><li><Check size={14} /> Gráfico do clima e calendário de meses vulneráveis</li><li><Check size={14} /> Problemas da região e El Niño / La Niña</li><li><Check size={14} /> Comparação das estratégias com notas, custos e lucros</li><li><Check size={14} /> Gráficos de lucro e saúde do solo em 3 anos</li><li><Check size={14} /> Lista "o que fazer agora"</li><li><Check size={14} /> Tabela com os dados oficiais da NASA e links das fontes</li></ul>
-                <div className="report-actions"><button className="button primary-solid" onClick={() => download()}><FileDown size={17} /> Baixar PDF</button><button className="button secondary" onClick={() => download(true)}>Visualizar</button><span role="status">{reportStatus}</span></div></div></div>
+            <h3 className="sub">Safra a safra</h3>
+            <ol className="season-plan">{plan.seasons.map((s, i) => <li key={s.label} className={'panel ' + (s.kind === 'cobertura' ? 'cover' : '')}>
+              <div className="season-head"><span className="season-num">{i + 1}</span><div><small>{s.label}</small><strong>{s.crop}</strong></div><span className="season-months">{s.months}</span></div>
+              <p>{s.action}</p>
+              <div className="season-facts"><span className={s.profitHa >= 0 ? 'pos' : 'neg'}>{s.profitHa >= 0 ? 'Lucro' : 'Custo'} {money(Math.abs(s.profitHa))}/ha</span><span>Solo {s.soil} ({s.soilChange >= 0 ? '+' : ''}{s.soilChange})</span></div>
+              <small className="season-benefit">{s.benefit}</small>
+            </li>)}</ol>
+            <div className="plan-extra">
+              <div className="panel pad"><h3>Metas do plano</h3><ul className="goals">
+                {(() => { const n = plan.seasons.filter((s) => s.kind === 'cobertura').length; return <li><b>{n}</b> {n === 1 ? 'safra' : 'safras'} com o solo coberto por planta de cobertura</li> })()}
+                <li><b>{money(alternativesOf(strategies).filter((o) => plan.seasons.some((s) => s.crop === o.name)).reduce((t, o) => t + o.nSaving, 0) * (area || 1))}</b> em adubo poupado no período</li>
+                <li><b>{money(gain / 3)}</b> por ano a mais que deixar o solo parado</li>
+                <li>Saúde do solo de <b>50</b> para <b>{last.soil}</b> pontos</li></ul></div>
+              <div className="panel pad"><h3>Pontos de atenção</h3><ul className="watch">
+                {[...new Set(alternativesOf(strategies).filter((o) => plan.seasons.some((s) => s.crop === o.name)).flatMap((o) => o.risks.slice(0, 2).map((r) => o.name + ': ' + r)))].slice(0, 5).map((r) => <li key={r}>{r}</li>)}
+                <li>Antes de cada safra, consulte a <a href={ensoOutlook} target="_blank" rel="noreferrer">previsão de El Niño / La Niña</a>.</li></ul></div>
+            </div>
             <div className="panel pad story"><h3>Resumo do plano</h3>
               <p>Mantendo {crops[farm.crop].name.toLowerCase()} na safra principal e usando a 2ª safra para {[plan.cash?.name, plan.cover?.name].filter(Boolean).join(' e ').toLowerCase()}, o talhão {gain >= 0 ? 'ganha cerca de ' + money(gain) : 'tem cerca de ' + money(-gain) + ' a menos de lucro'} em 3 anos frente ao pousio{scenario !== 'neutral' ? ', considerando anos de ' + phaseNames[scenario] : ''}, e a saúde do solo vai de 50 para {last.soil} (sem rotação: {last.baselineSoil}).</p>
               {plan.cover && <p>A cobertura com {plan.cover.name.toLowerCase()} não gera venda, mas protege o solo{plan.cover.nSaving ? ' e deixa nitrogênio para a próxima safra' : ''}.</p>}
               <p>{impact.region}: em El Niño, {impact.elninoText.toLowerCase()} Em La Niña, {impact.laninaText.toLowerCase()} Consulte a <a href={ensoOutlook} target="_blank" rel="noreferrer">previsão da NOAA</a> antes de cada safra.</p>
               <p className="hint">{limits}</p></div>
+            <div className="panel report-card"><div className="report-cover"><span>PDF</span><b>Relatório da sua fazenda</b><small>{location.name}</small></div>
+              <div className="report-body"><h3>Seu relatório está pronto</h3><p>Montado com as suas respostas, em linguagem simples, para ler e levar ao agrônomo.</p>
+                <ul className="report-list"><li><Check size={14} /> Resumo para você e suas respostas</li><li><Check size={14} /> Gráfico do clima e calendário de meses vulneráveis</li><li><Check size={14} /> Problemas da região e El Niño / La Niña</li><li><Check size={14} /> Comparação das estratégias com notas, custos e lucros</li><li><Check size={14} /> Gráficos de lucro e saúde do solo em 3 anos</li><li><Check size={14} /> Lista "o que fazer agora"</li><li><Check size={14} /> Tabela com os dados oficiais da NASA e links das fontes</li></ul>
+                <div className="report-actions"><button className="button primary-solid" onClick={() => download()}><FileDown size={17} /> Baixar PDF</button><button className="button secondary" onClick={() => download(true)}>Visualizar</button><span role="status">{reportStatus}</span></div></div></div>
           </>}
         </section>}
 
@@ -381,14 +401,15 @@ function App() {
         </section>
         <section id="dados" className="section">
           <div className="section-head"><div><p className="eyebrow"><Satellite size={16} /> Base de dados</p><h2>De onde vêm as informações</h2><p>As fontes que o EarthVision usa e o que tiramos de cada uma.</p></div></div>
-          <div className="sources">{dataSources.map((d) => <a className="panel source-row" key={d.name} href={d.url} target="_blank" rel="noreferrer"><div><strong>{d.name}</strong><small>{d.org}</small></div><p><b>O que usamos:</b> {d.what}</p><p><b>Para quê:</b> {d.idea}</p></a>)}</div>
+          <div className="source-grid">{dataSources.map((d) => <details className="panel source-box" key={d.name}><summary><strong>{d.name}</strong><small>{d.org}</small><span className="open-hint">Ver mais</span></summary>
+            <p><b>O que usamos:</b> {d.what}</p><p><b>Para quê:</b> {d.idea}</p><a href={d.url} target="_blank" rel="noreferrer">Abrir fonte oficial ↗</a></details>)}</div>
           <details className="panel method about"><summary>Sobre o projeto (NASA Space Apps Challenge 2026)</summary>
             <p className="hint">O EarthVision foi criado para o desafio <a href={challenge} target="_blank" rel="noreferrer">Field Shift: Adapting Farms with NASA Data</a>. Veja como cada pedido do desafio foi atendido:</p>
             <ol className="about-list">{challengeSteps.map((c) => <li key={c.title}><b>{c.title}.</b> {c.how}</li>)}</ol></details>
         </section>
       </div>
     </main>
-    <footer><div className="shell"><strong><Globe2 size={19} /> EarthVision</strong><span>NASA POWER · MERRA-2 · MODIS · SRTM · NOAA ONI · Open-Meteo · OpenStreetMap</span></div></footer>
+    <footer><div className="shell"><strong><Globe2 size={19} /> EarthVision</strong><span>Ferramenta de apoio: não substitui o agrônomo · Dados NASA POWER, MERRA-2, MODIS e SRTM</span></div></footer>
   </>
 }
 createRoot(document.getElementById('root')!).render(<App />)

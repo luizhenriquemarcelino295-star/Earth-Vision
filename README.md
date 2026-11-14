@@ -19,9 +19,9 @@ Abra http://127.0.0.1:5173. O build estático fica em `dist/`. Também é possí
 
 1. **Onde fica** – busca de cidade em qualquer país, GPS do celular ou clique no mapa (sem digitar coordenadas).
 2. **Clima e problemas** – escolha o ano (2020–2025), veja a fase de El Niño/La Niña, os efeitos na região, os problemas detectados (seca, calor, chuva concentrada, solo descoberto) e o gráfico mensal.
-3. **Seu talhão** – restrições (mercado local, plantadeira, gado), mês do próximo plantio (safra de verão, safrinha ou inverno), cultura atual com breve explicação, tipo de solo, área, irrigação e 7 prioridades.
+3. **Seu talhão** – 9 tipos de solo, área, o que dá para vender na região (grãos, perenes como café e frutas, pecuária), estrutura (irrigação, plantadeira, gado), mês do próximo plantio (safra de verão, safrinha ou inverno), cultura atual com breve explicação, tipo de solo, área, irrigação e 7 prioridades.
 4. **Proposta de plantio** – a rotação atual (referência) e as 3 melhores alternativas, cada uma com motivo, evidências dos dados, benefícios, riscos para revisão local e lacunas de informação. Controles "e se" de chuva e temperatura. As culturas para aquele mês, com nota, motivos, cuidados, receita, custo, lucro e economia de adubo/água. Preços e custos são editáveis.
-5. **Próximos 3 anos** – lucro acumulado e saúde do solo da rotação × sem rotação, nos cenários normal, El Niño e La Niña, com calendário e resumo em texto.
+5. **Próximos 3 anos** – detalhe safra a safra (o que fazer, meses, lucro e solo), metas, pontos de atenção, lucro acumulado e saúde do solo da rotação × sem rotação, nos cenários normal, El Niño e La Niña, com calendário e resumo em texto.
 
 ## Etapas do desafio no EarthVision
 

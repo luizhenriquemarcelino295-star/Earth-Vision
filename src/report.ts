@@ -3,7 +3,7 @@ import { frostThreshold, heatThreshold, heavyRainThreshold, monthNames, periodOf
 import { ndviDocs, ndviProduct, type Ndvi } from './ndvi'
 import { srtmDocs, type Terrain } from './terrain'
 import { ensoDocs, ensoOutlook, phaseNames, yearPhase, type EnsoImpact } from './enso'
-import { criteria, crops, embrapa, fao, limits, methodology, priorities, seasonOf, soils, vulnerabilityCalendar, type Farm, type Strategy, type longTermPlan, type regionProblems } from './rotation'
+import { criteria, crops, marketName, embrapa, fao, limits, methodology, priorities, seasonOf, soils, vulnerabilityCalendar, type Farm, type Strategy, type longTermPlan, type regionProblems } from './rotation'
 
 export interface ReportInput {
   location: Location; farm: Farm
@@ -243,7 +243,7 @@ export function buildReport(input: ReportInput) {
     ['Cultura atual', crops[farm.crop].name], ['Próximo plantio', monthNames[farm.month] + ' - ' + seasonOf(farm.month).name],
     ['Tipo de solo', soils[farm.soil].name], ['Irrigação', farm.irrigated ? 'Sim' : 'Não'],
     ['Prioridade', priorities[farm.priority].name], ['Gado', farm.cattle ? 'Sim (forragem tem valor)' : 'Não'],
-    ['Vende na região', farm.markets.length ? farm.markets.map((c) => crops[c].name).join(', ') : 'nenhuma cultura marcada'],
+    ['Vende na região', farm.markets.length ? farm.markets.map(marketName).join(', ') : 'nenhuma cultura marcada'],
     ['Plantadeira p/ sementes miúdas', farm.smallSeedPlanter ? 'Sim' : 'Não'],
   ]
   const aw = (CW - 4) / 2
@@ -344,16 +344,23 @@ export function buildReport(input: ReportInput) {
   section('3', 'Plano para os próximos 3 anos', 'Manter ' + crops[farm.crop].name.toLowerCase() + ' na safra principal e usar a 2ª safra para a rotação, comparado a deixar o solo parado.')
   if (plan.seasons.length) {
     profitChart(M, y, CW * .58, 70); soilChart(M + CW * .58 + 4, y, CW * .42 - 4, 70); y += 76
-    font(11, true, C.deep); text('Calendário sugerido', M, y); y += 4
-    const tw = CW / plan.seasons.length
-    plan.seasons.forEach((s, i) => {
-      const tx = M + i * tw
-      box(tx + .5, y, tw - 1, 16, i % 2 ? C.light : C.white)
-      fill(C.mint); pdf.rect(tx + .5, y, tw - 1, 1.5, 'F')
-      font(6.8, false, C.muted); text(s.label, tx + 2.5, y + 6)
-      font(9, true, C.deep); text(lines(s.crop, tw - 5)[0], tx + 2.5, y + 12)
-    })
-    y += 22
+    font(11, true, C.deep); text('Safra a safra', M, y); y += 4
+    for (const [i, s] of plan.seasons.entries()) {
+      const actionLines = lines(s.action, CW - 74), benefitLines = lines(s.benefit, CW - 74)
+      const bh = Math.max(16, (actionLines.length + benefitLines.length) * 3.7 + 6)
+      ensure(bh + 2)
+      box(M, y, CW, bh, i % 2 ? C.white : [250, 252, 249])
+      fill(s.kind === 'cobertura' ? C.green : [224, 169, 91]); pdf.rect(M, y, 1.8, bh, 'F')
+      font(7, false, C.muted); text(s.label, M + 5, y + 5)
+      font(10, true, C.deep); text(s.crop, M + 5, y + 10)
+      font(7, false, C.muted); text(s.months, M + 5, y + 14)
+      font(8.3, false, C.text); actionLines.forEach((l, k) => text(l, M + 48, y + 5 + k * 3.7))
+      font(8, false, C.green); benefitLines.forEach((l, k) => text(l, M + 48, y + 5 + (actionLines.length + k) * 3.7))
+      font(9, true, s.profitHa >= 0 ? C.green : C.red); text(money(s.profitHa) + '/ha', W - M - 3, y + 6, { align: 'right' })
+      font(7.5, false, C.muted); text('solo ' + s.soil + ' (' + (s.soilChange >= 0 ? '+' : '') + s.soilChange + ')', W - M - 3, y + 11, { align: 'right' })
+      y += bh + 1.5
+    }
+    y += 4
     const neutral = last.profit.neutral, elnino = last.profit.elnino, lanina = last.profit.lanina
     const sw = (CW - 6) / 3
     ;[['Ano normal', neutral, C.green], ['Anos de El Niño', elnino, C.orange], ['Anos de La Niña', lanina, C.blue]].forEach(([label, value, c], i) => {
@@ -366,6 +373,7 @@ export function buildReport(input: ReportInput) {
     para('Lucro acumulado em 3 anos com a rotação. Sem rotação: ' + money(last.baseline) + '. Os cenários de El Niño e La Niña usam o efeito típico na região (' + impact.region + ') e não são previsões.', 8.5, C.muted)
   }
   y += 4
+  ensure(45)
   font(11, true, C.deep); text('O que fazer agora', M, y); y += 5
   const todo = [
     best ? 'Converse com seu agrônomo sobre ' + best.name.toLowerCase() + ' para ' + monthNames[farm.month].toLowerCase() + ': confirme cultivar, janela e sementes.' : 'Revise o mês de plantio e as culturas que você consegue vender.',
