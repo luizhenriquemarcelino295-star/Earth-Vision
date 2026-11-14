@@ -113,6 +113,35 @@ function Dictionary() {
   </div>
 }
 
+function DataSources() {
+  const [expanded, setExpanded] = useState<string[]>([])
+  return <div className="source-layout">
+    <div className="source-grid">
+      {dataSources.map((source, index) => {
+        const open = expanded.includes(source.name)
+        return <button key={source.name} type="button" className="panel source-box"
+          aria-expanded={open} aria-controls={'source-details-' + index}
+          onClick={() => setExpanded((current) => current.includes(source.name)
+            ? current.filter((name) => name !== source.name)
+            : [...current, source.name])}>
+          <strong>{source.name}</strong>
+          <small>{source.org}</small>
+          <span className="open-hint">{open ? 'Ver menos' : 'Ver mais'}</span>
+        </button>
+      })}
+    </div>
+    <div className="source-panels">
+      {dataSources.map((source, index) => <article className="panel source-description" key={source.name}
+        id={'source-details-' + index} hidden={!expanded.includes(source.name)}>
+        <h3>{source.name}</h3>
+        <p><b>O que usamos:</b> {source.what}</p>
+        <p><b>Para quê:</b> {source.idea}</p>
+        <a href={source.url} target="_blank" rel="noreferrer">Abrir fonte oficial ↗</a>
+      </article>)}
+    </div>
+  </div>
+}
+
 function App() {
   const [step, setStep] = useState(0)
   const [location, setLocation] = useState(() => readSaved<Location>('earthvision-location', locations[0], (v) => Number.isFinite(v.lat) && Number.isFinite(v.lon) && typeof v.name === 'string'))
@@ -401,8 +430,7 @@ function App() {
         </section>
         <section id="dados" className="section">
           <div className="section-head"><div><p className="eyebrow"><Satellite size={16} /> Base de dados</p><h2>De onde vêm as informações</h2><p>As fontes que o EarthVision usa e o que tiramos de cada uma.</p></div></div>
-          <div className="source-grid">{dataSources.map((d) => <details className="panel source-box" key={d.name}><summary><strong>{d.name}</strong><small>{d.org}</small><span className="open-hint">Ver mais</span></summary>
-            <p><b>O que usamos:</b> {d.what}</p><p><b>Para quê:</b> {d.idea}</p><a href={d.url} target="_blank" rel="noreferrer">Abrir fonte oficial ↗</a></details>)}</div>
+          <DataSources />
           <details className="panel method about"><summary>Sobre o projeto (NASA Space Apps Challenge 2026)</summary>
             <p className="hint">O EarthVision foi criado para o desafio <a href={challenge} target="_blank" rel="noreferrer">Field Shift: Adapting Farms with NASA Data</a>. Veja como cada pedido do desafio foi atendido:</p>
             <ol className="about-list">{challengeSteps.map((c) => <li key={c.title}><b>{c.title}.</b> {c.how}</li>)}</ol></details>
