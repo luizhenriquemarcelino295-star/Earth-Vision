@@ -1,12 +1,14 @@
 import { jsPDF } from 'jspdf'
 import { format, monthNames, periodOf, powerDocs, type Climate, type Location } from './power'
 import { ndviProduct, type Ndvi } from './ndvi'
+import type { Terrain } from './terrain'
+import { srtmDocs } from './terrain'
 import { ensoDocs, phaseNames, yearPhase, type EnsoImpact } from './enso'
 import { criteria, crops, embrapa, fao, limits, methodology, priorities, seasonOf, soils, type Farm, type Strategy, type longTermPlan, type regionProblems } from './rotation'
 
 const money = (value: number) => 'R$ ' + Math.round(value).toLocaleString('pt-BR')
 export function exportReport(location: Location, farm: Farm, climate: Climate, strategies: Strategy[], ndvi: Ndvi | null,
-  problems: ReturnType<typeof regionProblems>, plan: ReturnType<typeof longTermPlan>, impact: EnsoImpact) {
+  problems: ReturnType<typeof regionProblems>, plan: ReturnType<typeof longTermPlan>, impact: EnsoImpact, terrain: Terrain | null = null, scenario = { rainPct: 0, tempDelta: 0 }) {
   const pdf = new jsPDF()
   pdf.setProperties({ title: 'EarthVision | Relatório de rotação de culturas' })
   let y = 19
@@ -26,24 +28,32 @@ export function exportReport(location: Location, farm: Farm, climate: Climate, s
   write('1. Clima da região | ' + periodOf(climate.year) + ' | ' + phaseNames[yearPhase[climate.year]?.phase ?? 'neutral'], 13, true)
   write('Temperatura média: ' + format(climate.temperature) + ' °C | Chuva: ' + format(climate.rain, 0) + ' mm | Radiação: ' + format(climate.solar) + ' MJ/m²/dia')
   write('Umidade do solo: ' + (climate.soilMoisture == null ? '-' : format(climate.soilMoisture * 100, 0) + '%') + ' | Dias > 35 °C: ' + format(climate.heatDays, 0) + ' | NDVI médio: ' + format(ndvi?.mean ?? null, 2))
+  write('Evapotranspiração: ' + format(climate.eto, 0) + ' mm/ano | Geada (mín. < 2 °C): ' + format(climate.frostDays, 0) + ' dias | Chuva >= 50 mm: ' + format(climate.heavyRainDays, 0) + ' dias')
+  write('Relevo (SRTM): ' + (terrain ? terrain.elevation + ' m, declividade ' + format(terrain.slope) + '%, risco de erosão ' + terrain.erosion : 'indisponível'))
+  if (scenario.rainPct || scenario.tempDelta) write('Cenário simulado: chuva ' + (scenario.rainPct > 0 ? '+' : '') + scenario.rainPct + '%, temperatura +' + scenario.tempDelta + ' °C.')
   write('El Niño: ' + impact.elninoText + ' La Niña: ' + impact.laninaText)
   write('2. Problemas da região', 13, true)
   if (!problems.length) write('Nenhum problema climático forte detectado.')
-  problems.forEach((p) => write('• ' + p.title + ' (' + p.level + '): ' + p.text))
+  problems.forEach((p) => write('• ' + p.title + ' (' + p.level + ', ' + p.source + '): ' + p.text))
   write('3. Proposta de plantio', 13, true)
+  write('A comparação inclui a rotação atual como referência.')
   strategies.forEach((item, i) => {
-    write((i + 1) + 'ª opção: ' + item.sequence + ' (' + item.kind + ', ' + item.months + ') | ' + (item.total ?? '-') + '/100', 11, true)
+    write((item.isCurrent ? 'Rotação atual' : i + 'ª opção') + ': ' + item.sequence + ' (' + item.kind + ', ' + item.months + ') | ' + (item.total ?? '-') + '/100', 11, true)
     write(item.scores.map((s, k) => criteria[k] + ': ' + (s ?? '-')).join(' | '))
     write('Receita ' + money(item.revenueHa) + '/ha | Custo ' + money(item.costHa) + '/ha | Lucro ' + money(item.profitHa) + '/ha' + (item.nSaving ? ' | Adubo poupado ' + money(item.nSaving) + '/ha' : ''))
+    write('Por que: ' + item.why)
     item.reasons.forEach((r) => write('+ ' + r))
-    item.risks.forEach((r) => write('! ' + r))
+    item.evidence.forEach((r) => write('Evidência: ' + r, 9))
+    item.risks.forEach((r) => write('! Revisar: ' + r))
+    item.gaps.forEach((r) => write('? Lacuna: ' + r, 9))
   })
   write('4. Plano de 3 anos', 13, true)
   plan.seasons.forEach((s) => write(s.label + ': ' + s.crop + ' | solo ' + s.soil + ' | lucro acumulado ' + money(s.profit.neutral) + ' (El Niño ' + money(s.profit.elnino) + ', La Niña ' + money(s.profit.lanina) + ') | sem rotação ' + money(s.baseline)))
   write('Metodologia e limites', 13, true)
   write(methodology); write(limits)
+  write('Esta ferramenta apoia, mas não substitui, o julgamento do produtor e a assistência técnica local.')
   write('Fontes', 13, true)
-  ;[powerDocs, climate.url, ndviProduct, ensoDocs, fao, embrapa].forEach((s) => write(s, 8))
+  ;[powerDocs, climate.url, ndviProduct, srtmDocs, ensoDocs, fao, embrapa].forEach((s) => write(s, 8))
   for (let page = 1; page <= pdf.getNumberOfPages(); page++) { pdf.setPage(page); pdf.setFontSize(9); pdf.text('EarthVision  /  ' + page, 18, 289) }
   pdf.save('EarthVision-rotacao-' + new Date().toISOString().slice(0, 10) + '.pdf')
 }

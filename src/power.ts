@@ -18,6 +18,10 @@ export const extraParameters = ['GWETROOT', 'GWETTOP', 'T2M_MAX', 'T2M_MIN', 'RH
 type Parameter = typeof parameters[number]
 type Extra = typeof extraParameters[number]
 export const heatThreshold = 35
+export const frostThreshold = 2
+export const heavyRainThreshold = 50
+/** Evapotranspiração de referência (Hargreaves-Samani, forma com radiação): mm/dia. */
+export const referenceEt = (temperature: number, solar: number) => Math.max(0, 0.0135 * (temperature + 17.8) * solar * 0.408)
 type Series = Record<string, number>
 interface RawPower {
   header: { fill_value: number }
@@ -35,6 +39,12 @@ export interface Month {
   tMax: number | null
   tMin: number | null
   humidity: number | null
+  /** Dias com mínima abaixo de 2 °C (risco de geada) */
+  frostDays: number | null
+  /** Dias com chuva ≥ 50 mm (chuva extrema / erosão) */
+  heavyRainDays: number | null
+  /** Evapotranspiração de referência do mês (mm) */
+  eto: number | null
 }
 export interface Climate {
   months: Month[]
@@ -44,6 +54,9 @@ export interface Climate {
   dryMonths: number | null
   soilMoisture: number | null
   heatDays: number | null
+  frostDays: number | null
+  heavyRainDays: number | null
+  eto: number | null
   coverage: Record<Parameter, number>
   origin: 'live' | 'bundled'
   url: string
@@ -88,6 +101,9 @@ export function parsePower(raw: unknown, year = 2025): Omit<Climate, 'origin' | 
     tMax: mean(month.tMax),
     tMin: mean(month.tMin),
     humidity: mean(month.humidity),
+    frostDays: month.tMin.length ? month.tMin.filter((value) => value < frostThreshold).length : null,
+    heavyRainDays: month.rain.length ? month.rain.filter((value) => value >= heavyRainThreshold).length : null,
+    eto: month.temp.length && month.solar.length ? referenceEt(mean(month.temp)!, mean(month.solar)!) * month.days : null,
   }))
   const wet = buckets.flatMap((month) => month.wet)
   const tMax = buckets.flatMap((month) => month.tMax)
@@ -99,6 +115,9 @@ export function parsePower(raw: unknown, year = 2025): Omit<Climate, 'origin' | 
     dryMonths: rain.length === days ? months.filter((month) => month.rain !== null && month.rain < 60).length : null,
     soilMoisture: mean(wet),
     heatDays: tMax.length ? tMax.filter((value) => value > heatThreshold).length : null,
+    frostDays: months.every((m) => m.frostDays !== null) ? sum(months.map((m) => m.frostDays!)) : null,
+    heavyRainDays: rain.length ? rain.filter((value) => value >= heavyRainThreshold).length : null,
+    eto: months.every((m) => m.eto !== null) ? sum(months.map((m) => m.eto!)) : null,
     coverage: { T2M: temp.length, PRECTOTCORR: rain.length, ALLSKY_SFC_SW_DWN: solar.length },
   }
 }
@@ -118,3 +137,22 @@ export async function fetchClimate(location: Location, signal: AbortSignal, year
 }
 export const format = (value: number | null, digits = 1) => value === null ? '—' :
   new Intl.NumberFormat('pt-BR', { maximumFractionDigits: digits, minimumFractionDigits: digits }).format(value)
+
+/** Cenário "e se": muda a chuva (%) e a temperatura (°C) de todos os meses. */
+export function applyScenario(climate: Climate, rainPercent: number, temperatureDelta: number): Climate {
+  if (!rainPercent && !temperatureDelta) return climate
+  const factor = 1 + rainPercent / 100
+  const months = climate.months.map((m) => ({
+    ...m,
+    rain: m.rain === null ? null : m.rain * factor,
+    temperature: m.temperature === null ? null : m.temperature + temperatureDelta,
+    tMax: m.tMax === null ? null : m.tMax + temperatureDelta,
+    eto: m.eto === null || m.temperature === null ? m.eto : m.eto * (m.temperature + temperatureDelta + 17.8) / (m.temperature + 17.8),
+    heatDays: m.heatDays === null ? null : Math.min(31, Math.round(m.heatDays * (1 + temperatureDelta * 0.6) + temperatureDelta * 2)),
+    soilMoisture: m.soilMoisture === null ? null : Math.min(1, Math.max(0, m.soilMoisture * (1 + rainPercent / 250))),
+  }))
+  const total = (key: 'rain' | 'eto' | 'heatDays') => months.every((m) => m[key] !== null) ? sum(months.map((m) => m[key]!)) : null
+  return { ...climate, months, rain: total('rain'), eto: total('eto'), heatDays: total('heatDays'),
+    temperature: climate.temperature === null ? null : climate.temperature + temperatureDelta,
+    dryMonths: months.every((m) => m.rain !== null) ? months.filter((m) => m.rain! < 60).length : null }
+}

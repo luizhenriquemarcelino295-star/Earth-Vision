@@ -19,8 +19,8 @@ Abra http://127.0.0.1:5173. O build estático fica em `dist/`. Também é possí
 
 1. **Onde fica** – busca de cidade em qualquer país, GPS do celular ou clique no mapa (sem digitar coordenadas).
 2. **Clima e problemas** – escolha o ano (2020–2025), veja a fase de El Niño/La Niña, os efeitos na região, os problemas detectados (seca, calor, chuva concentrada, solo descoberto) e o gráfico mensal.
-3. **Seu talhão** – mês do próximo plantio (safra de verão, safrinha ou inverno), cultura atual com breve explicação, tipo de solo, área, irrigação e 7 prioridades.
-4. **Proposta de plantio** – as 3 melhores culturas para aquele mês, com nota, motivos, cuidados, receita, custo, lucro e economia de adubo/água. Preços e custos são editáveis.
+3. **Seu talhão** – restrições (mercado local, plantadeira, gado), mês do próximo plantio (safra de verão, safrinha ou inverno), cultura atual com breve explicação, tipo de solo, área, irrigação e 7 prioridades.
+4. **Proposta de plantio** – a rotação atual (referência) e as 3 melhores alternativas, cada uma com motivo, evidências dos dados, benefícios, riscos para revisão local e lacunas de informação. Controles "e se" de chuva e temperatura. As culturas para aquele mês, com nota, motivos, cuidados, receita, custo, lucro e economia de adubo/água. Preços e custos são editáveis.
 5. **Próximos 3 anos** – lucro acumulado e saúde do solo da rotação × sem rotação, nos cenários normal, El Niño e La Niña, com calendário e resumo em texto.
 
 ## Etapas do desafio no EarthVision
@@ -40,10 +40,11 @@ A página também tem a seção **Desafio**, que mostra essas etapas e os dados 
 
 | Fonte | Variáveis | Uso |
 |---|---|---|
-| [NASA POWER](https://power.larc.nasa.gov/docs/services/api/temporal/daily/) (comunidade AG) | T2M, T2M_MAX, T2M_MIN, PRECTOTCORR, ALLSKY_SFC_SW_DWN, RH2M | Clima, chuva, radiação e dias de calor extremo (> 35 °C) |
+| [NASA POWER](https://power.larc.nasa.gov/docs/services/api/temporal/daily/) (comunidade AG) | T2M, T2M_MAX, T2M_MIN, PRECTOTCORR, ALLSKY_SFC_SW_DWN, RH2M | Calor (> 35 °C), geada (mín. < 2 °C), chuva extrema (≥ 50 mm), evapotranspiração de referência (Hargreaves) e balanço hídrico |
 | [MERRA-2 / GMAO](https://gmao.gsfc.nasa.gov/reanalysis/MERRA-2/) via POWER | GWETTOP, GWETROOT | Umidade do solo; ajusta a nota de água em ±15% |
 | [NOAA CPC ONI](https://origin.cpc.ncep.noaa.gov/products/analysis_monitoring/ensostuff/ONI_v5.php) | Fase El Niño / La Niña por ano | Cenários do plano de 3 anos |
 | [Open-Meteo Geocoding](https://open-meteo.com/en/docs/geocoding-api) | Cidades do mundo | Busca da fazenda |
+| [SRTM](https://www.earthdata.nasa.gov/data/instruments/srtm) via OpenTopoData | Altitude e declividade | Risco de erosão |
 | [MODIS Terra MOD13Q1 v061](https://lpdaac.usgs.gov/products/mod13q1v061/) via [API ORNL DAAC](https://modis.ornl.gov/data/modis_webservice.html) | NDVI 250 m, 16 dias | Ciclo da vegetação e solo exposto; risco e bônus de cobertura |
 
 Nenhuma fonte exige credenciais. Próximos passos sugeridos (exigem login Earthdata): SMAP, GPM IMERG e HLS/Landsat.
@@ -65,3 +66,7 @@ A pontuação é exploratória. Os valores de demanda hídrica orientam a compar
 - [FAO | Necessidades hídricas das culturas](https://www.fao.org/4/s2022e/s2022e07.htm)
 - [Embrapa | Água nas culturas de milho, sorgo e milheto](https://www.infoteca.cnptia.embrapa.br/infoteca/handle/doc/1190579)
 - [OpenStreetMap](https://www.openstreetmap.org/copyright)
+
+## Recursos do desafio
+
+A seção **Desafio** do site lista todos os recursos indicados pela NASA, marcando os já usados (NASA POWER, MERRA-2, MODIS, SRTM, NOAA ONI) e os recomendados para a próxima versão (SMAP, GPM IMERG, ECOSTRESS, Landsat, GRACE, NLDAS/GLDAS, GEDI, Sentinel-2, ERA5, FAO GAEZ e bases do USDA), que exigem login no Earthdata ou cobrem só os EUA.

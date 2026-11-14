@@ -1,6 +1,7 @@
 import type { Climate } from './power'
 import type { Ndvi } from './ndvi'
-import { ensoImpact, type EnsoImpact } from './enso'
+import type { EnsoImpact } from './enso'
+import type { Terrain } from './terrain'
 
 /**
  * Culturas com dados indicativos (Brasil). Água: necessidade no ciclo (FAO/Embrapa).
@@ -10,18 +11,19 @@ export interface CropInfo {
   name: string; family: string; kind: 'grão' | 'cobertura' | 'fibra'; description: string
   water: number; temperature: readonly [number, number]; cycle: number; plant: readonly number[]
   yield: number; unit: string; price: number; cost: number; fixesNitrogen: boolean; droughtTolerant: boolean
+  forage: boolean; deepRoots: boolean; frostTolerant: boolean
 }
 export const crops = {
-  soybean: { name: 'Soja', family: 'leguminosa', kind: 'grão', description: 'Leguminosa que fixa nitrogênio do ar no solo. Principal safra de verão, sensível à seca no enchimento de grãos.', water: 550, temperature: [20, 30], cycle: 4, plant: [8, 9, 10, 11], yield: 60, unit: 'sc', price: 120, cost: 4200, fixesNitrogen: true, droughtTolerant: false },
-  corn: { name: 'Milho', family: 'gramínea', kind: 'grão', description: 'Gramínea de alto potencial produtivo e muita palhada. Exige água no florescimento e bastante nitrogênio.', water: 600, temperature: [18, 30], cycle: 5, plant: [0, 1, 2, 8, 9, 10, 11], yield: 110, unit: 'sc', price: 60, cost: 5000, fixesNitrogen: false, droughtTolerant: false },
-  sorghum: { name: 'Sorgo', family: 'gramínea', kind: 'grão', description: 'Parecido com o milho, porém mais resistente à seca e ao calor. Boa opção de safrinha tardia.', water: 450, temperature: [20, 34], cycle: 4, plant: [0, 1, 2, 3], yield: 80, unit: 'sc', price: 50, cost: 2600, fixesNitrogen: false, droughtTolerant: true },
-  beans: { name: 'Feijão', family: 'leguminosa', kind: 'grão', description: 'Ciclo curto (cerca de 90 dias) e bom preço. Fixa nitrogênio, mas sofre com calor no florescimento.', water: 350, temperature: [17, 28], cycle: 3, plant: [0, 1, 2, 3, 4, 9, 10, 11], yield: 30, unit: 'sc', price: 250, cost: 4500, fixesNitrogen: true, droughtTolerant: false },
-  wheat: { name: 'Trigo', family: 'gramínea', kind: 'grão', description: 'Cereal de inverno para regiões frias ou com irrigação. Quebra o ciclo de pragas da soja.', water: 450, temperature: [10, 24], cycle: 4, plant: [3, 4, 5], yield: 55, unit: 'sc', price: 80, cost: 3800, fixesNitrogen: false, droughtTolerant: false },
-  cotton: { name: 'Algodão', family: 'malvácea', kind: 'fibra', description: 'Cultura de alto valor e alto custo, de ciclo longo. Exige manejo intensivo de pragas.', water: 700, temperature: [20, 32], cycle: 6, plant: [10, 11, 0], yield: 300, unit: '@', price: 130, cost: 12000, fixesNitrogen: false, droughtTolerant: false },
-  millet: { name: 'Milheto', family: 'gramínea', kind: 'cobertura', description: 'Planta de cobertura rústica que cresce com pouca chuva. Raízes profundas descompactam o solo.', water: 400, temperature: [20, 34], cycle: 3, plant: [1, 2, 3, 4, 7, 8, 9], yield: 0, unit: 'sc', price: 0, cost: 400, fixesNitrogen: false, droughtTolerant: true },
-  crotalaria: { name: 'Crotalária', family: 'leguminosa', kind: 'cobertura', description: 'Adubo verde que fixa nitrogênio e reduz nematoides. Muito usada antes da soja ou do milho.', water: 350, temperature: [20, 32], cycle: 3, plant: [1, 2, 3, 8, 9, 10], yield: 0, unit: 'sc', price: 0, cost: 450, fixesNitrogen: true, droughtTolerant: true },
-  brachiaria: { name: 'Braquiária', family: 'gramínea', kind: 'cobertura', description: 'Capim que forma palhada duradoura e pode virar pasto (integração lavoura-pecuária).', water: 400, temperature: [18, 35], cycle: 4, plant: [0, 1, 2, 3], yield: 0, unit: 'sc', price: 0, cost: 350, fixesNitrogen: false, droughtTolerant: true },
-  oat: { name: 'Aveia', family: 'gramínea', kind: 'cobertura', description: 'Cobertura de inverno para regiões frias. Protege o solo e controla plantas daninhas.', water: 350, temperature: [8, 22], cycle: 3, plant: [3, 4, 5], yield: 0, unit: 'sc', price: 0, cost: 400, fixesNitrogen: false, droughtTolerant: false },
+  soybean: { name: 'Soja', family: 'leguminosa', kind: 'grão', description: 'Leguminosa que fixa nitrogênio do ar no solo. Principal safra de verão, sensível à seca no enchimento de grãos.', water: 550, temperature: [20, 30], cycle: 4, plant: [8, 9, 10, 11], yield: 60, unit: 'sc', price: 120, cost: 4200, fixesNitrogen: true, droughtTolerant: false, forage: false, deepRoots: false, frostTolerant: false },
+  corn: { name: 'Milho', family: 'gramínea', kind: 'grão', description: 'Gramínea de alto potencial produtivo e muita palhada. Exige água no florescimento e bastante nitrogênio.', water: 600, temperature: [18, 30], cycle: 5, plant: [0, 1, 2, 8, 9, 10, 11], yield: 110, unit: 'sc', price: 60, cost: 5000, fixesNitrogen: false, droughtTolerant: false, forage: true, deepRoots: false, frostTolerant: false },
+  sorghum: { name: 'Sorgo', family: 'gramínea', kind: 'grão', description: 'Parecido com o milho, porém mais resistente à seca e ao calor. Boa opção de safrinha tardia.', water: 450, temperature: [20, 34], cycle: 4, plant: [0, 1, 2, 3], yield: 80, unit: 'sc', price: 50, cost: 2600, fixesNitrogen: false, droughtTolerant: true, forage: true, deepRoots: true, frostTolerant: false },
+  beans: { name: 'Feijão', family: 'leguminosa', kind: 'grão', description: 'Ciclo curto (cerca de 90 dias) e bom preço. Fixa nitrogênio, mas sofre com calor no florescimento.', water: 350, temperature: [17, 28], cycle: 3, plant: [0, 1, 2, 3, 4, 9, 10, 11], yield: 30, unit: 'sc', price: 250, cost: 4500, fixesNitrogen: true, droughtTolerant: false, forage: false, deepRoots: false, frostTolerant: false },
+  wheat: { name: 'Trigo', family: 'gramínea', kind: 'grão', description: 'Cereal de inverno para regiões frias ou com irrigação. Quebra o ciclo de pragas da soja.', water: 450, temperature: [10, 24], cycle: 4, plant: [3, 4, 5], yield: 55, unit: 'sc', price: 80, cost: 3800, fixesNitrogen: false, droughtTolerant: false, forage: false, deepRoots: false, frostTolerant: true },
+  cotton: { name: 'Algodão', family: 'malvácea', kind: 'fibra', description: 'Cultura de alto valor e alto custo, de ciclo longo. Exige manejo intensivo de pragas.', water: 700, temperature: [20, 32], cycle: 6, plant: [10, 11, 0], yield: 300, unit: '@', price: 130, cost: 12000, fixesNitrogen: false, droughtTolerant: false, forage: false, deepRoots: true, frostTolerant: false },
+  millet: { name: 'Milheto', family: 'gramínea', kind: 'cobertura', description: 'Planta de cobertura rústica que cresce com pouca chuva. Raízes profundas descompactam o solo.', water: 400, temperature: [20, 34], cycle: 3, plant: [1, 2, 3, 4, 7, 8, 9], yield: 0, unit: 'sc', price: 0, cost: 400, fixesNitrogen: false, droughtTolerant: true, forage: true, deepRoots: true, frostTolerant: false },
+  crotalaria: { name: 'Crotalária', family: 'leguminosa', kind: 'cobertura', description: 'Adubo verde que fixa nitrogênio e reduz nematoides. Muito usada antes da soja ou do milho.', water: 350, temperature: [20, 32], cycle: 3, plant: [1, 2, 3, 8, 9, 10], yield: 0, unit: 'sc', price: 0, cost: 450, fixesNitrogen: true, droughtTolerant: true, forage: false, deepRoots: true, frostTolerant: false },
+  brachiaria: { name: 'Braquiária', family: 'gramínea', kind: 'cobertura', description: 'Capim que forma palhada duradoura e pode virar pasto (integração lavoura-pecuária).', water: 400, temperature: [18, 35], cycle: 4, plant: [0, 1, 2, 3], yield: 0, unit: 'sc', price: 0, cost: 350, fixesNitrogen: false, droughtTolerant: true, forage: true, deepRoots: true, frostTolerant: false },
+  oat: { name: 'Aveia', family: 'gramínea', kind: 'cobertura', description: 'Cobertura de inverno para regiões frias. Protege o solo e controla plantas daninhas.', water: 350, temperature: [8, 22], cycle: 3, plant: [3, 4, 5], yield: 0, unit: 'sc', price: 0, cost: 400, fixesNitrogen: false, droughtTolerant: false, forage: true, deepRoots: false, frostTolerant: true },
 } satisfies Record<string, CropInfo>
 export type Crop = keyof typeof crops
 export const cropList = Object.keys(crops) as Crop[]
@@ -41,6 +43,8 @@ export const priorities = {
   soil: { name: 'Saúde do solo', text: 'Palhada, matéria orgânica e cobertura', icon: '🌱' },
   risk: { name: 'Menos risco climático', text: 'Proteção contra seca, calor e El Niño', icon: '🛡️' },
   inputs: { name: 'Menos adubo', text: 'Aproveitar o nitrogênio das leguminosas', icon: '🧪' },
+  erosion: { name: 'Evitar erosão', text: 'Proteger solo em declive e chuva forte', icon: '⛰️' },
+  forage: { name: 'Pasto / forragem', text: 'Alimentar o gado na entressafra', icon: '🐄' },
   production: { name: 'Produção de grãos', text: 'Manter o talhão produzindo grão', icon: '🌾' },
 }
 export type Priority = keyof typeof priorities
@@ -49,6 +53,7 @@ export const criteria = ['Água', 'Solo', 'Clima', 'Lucro'] as const
 export const weights: Record<Priority, readonly [number, number, number, number]> = {
   balanced: [.25, .25, .25, .25], profit: [.15, .1, .2, .55], water: [.55, .15, .15, .15], soil: [.15, .55, .15, .15],
   risk: [.3, .1, .45, .15], inputs: [.15, .45, .15, .25], production: [.2, .1, .3, .4],
+  erosion: [.15, .55, .15, .15], forage: [.2, .3, .2, .3],
 }
 
 export function seasonOf(month: number) {
@@ -60,10 +65,17 @@ export function seasonOf(month: number) {
 export interface Farm {
   name: string; area: string; crop: Crop; soil: Soil; irrigated: boolean; priority: Priority; month: number
   prices: Partial<Record<Crop, { yield?: number; price?: number; cost?: number }>>
+  /** Culturas que o produtor consegue vender na região (restrição de mercado). */
+  markets: Crop[]
+  /** Tem plantadeira para sementes miúdas (milheto, braquiária, crotalária, aveia)? */
+  smallSeedPlanter: boolean
+  /** Cria gado (valoriza forragem)? */
+  cattle: boolean
 }
-export const defaultFarm: Farm = { name: '', area: '100', crop: 'soybean', soil: 'unknown', irrigated: false, priority: 'balanced', month: 1, prices: {} }
+export const defaultFarm: Farm = { name: '', area: '100', crop: 'soybean', soil: 'unknown', irrigated: false, priority: 'balanced', month: 1, prices: {}, markets: ['soybean', 'corn', 'beans', 'sorghum', 'wheat', 'cotton'], smallSeedPlanter: true, cattle: false }
+const smallSeeds: Crop[] = ['millet', 'brachiaria', 'crotalaria', 'oat']
 export const nitrogenSaving = 350 // R$/ha de adubo nitrogenado poupado na cultura seguinte (≈ 50 kg N/ha)
-export const methodology = 'Para cada cultura que pode ser plantada no mês escolhido, o EarthVision olha os meses do ciclo no ano histórico da NASA POWER. Água compara a chuva do ciclo com a necessidade da cultura e é ajustada pela umidade do solo (MERRA-2). Solo valoriza trocar de família, plantas de cobertura, fixação de nitrogênio e o NDVI do MODIS (solo descoberto). Clima mede o quanto a temperatura fica fora da faixa ideal e quantos dias passam de 35 °C. Lucro usa produtividade × preço − custo, mais a economia de adubo deixada por leguminosas. A nota final pondera esses quatro pontos conforme a prioridade.'
+export const methodology = 'A comparação sempre inclui a rotação atual (repetir a cultura ou deixar o solo parado) e as melhores alternativas. Para cada cultura que pode ser plantada no mês escolhido, o EarthVision olha os meses do ciclo no ano histórico da NASA POWER. Água compara a chuva do ciclo com a necessidade da cultura e é ajustada pela umidade do solo (MERRA-2). Solo valoriza trocar de família, plantas de cobertura, fixação de nitrogênio e o NDVI do MODIS (solo descoberto). Clima mede o quanto a temperatura fica fora da faixa ideal, os dias acima de 35 °C e os dias com risco de geada. A declividade do SRTM e os dias de chuva extrema aumentam o peso da cobertura contra a erosão. O balanço hídrico compara a chuva com a evapotranspiração de referência (Hargreaves) calculada com temperatura e radiação da NASA POWER. Lucro usa produtividade × preço − custo, mais a economia de adubo deixada por leguminosas. A nota final pondera esses quatro pontos conforme a prioridade.'
 export const limits = 'Os dados da NASA são estimativas regionais (grade de ~50 km). Preços, custos e produtividades são referências editáveis. El Niño e La Niña mostram tendências, não previsões. Confirme com o agrônomo antes de decidir.'
 export const fao = 'https://www.fao.org/4/s2022e/s2022e07.htm'
 export const embrapa = 'https://www.infoteca.cnptia.embrapa.br/infoteca/handle/doc/1190579'
@@ -77,84 +89,154 @@ export function economics(farm: Farm, crop: Crop) {
 }
 
 export interface Strategy {
-  id: Crop; name: string; kind: string; description: string; sequence: string; reasons: string[]; risks: string[]
-  months: string; waterNeed: number; windowRain: number | null; windowTemperature: number | null
-  windowSoilMoisture: number | null; windowHeatDays: number | null; windowNdvi: number | null
+  id: Crop | 'fallow'; name: string; kind: string; description: string; sequence: string; isCurrent: boolean
+  why: string; reasons: string[]; evidence: string[]; risks: string[]; gaps: string[]
+  months: string; waterNeed: number; windowRain: number | null; windowEt: number | null; windowTemperature: number | null
+  windowSoilMoisture: number | null; windowHeatDays: number | null; windowFrostDays: number | null; windowNdvi: number | null
   scores: [number | null, number, number | null, number]; total: number | null
   profitHa: number; revenueHa: number; costHa: number; nSaving: number; waterSaved: number
 }
 const monthShort = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+/** Culturas possíveis no mês, respeitando mercado e equipamento informados pelo produtor. */
 export function candidates(farm: Farm) {
-  return cropList.filter((crop) => crop !== farm.crop && crops[crop].plant.includes(farm.month))
+  return cropList.filter((crop) => crop !== farm.crop && crops[crop].plant.includes(farm.month)
+    && (crops[crop].kind === 'cobertura' || farm.markets.includes(crop))
+    && (farm.smallSeedPlanter || !smallSeeds.includes(crop)))
 }
-export function compare(farm: Farm, climate: Climate | null, ndvi: Ndvi | null = null, top = 3): Strategy[] {
-  const current = crops[farm.crop]
-  const currentProfit = economics(farm, farm.crop).profit
-  return candidates(farm).map((id): Strategy => {
-    const crop: CropInfo = crops[id]
-    const months = Array.from({ length: crop.cycle }, (_, i) => (farm.month + i) % 12)
-    const data = months.map((m) => climate?.months[m])
-    const windowRain = climate && data.every((m) => m?.rain != null) ? data.reduce((s, m) => s + (m?.rain ?? 0), 0) : null
-    const windowTemperature = climate && data.every((m) => m?.temperature != null) ? mean(data.map((m) => m!.temperature!)) : null
-    const soilValues = data.flatMap((m) => m?.soilMoisture == null ? [] : [m.soilMoisture])
-    const windowSoilMoisture = soilValues.length === months.length ? mean(soilValues) : null
-    const windowHeatDays = climate && data.every((m) => m?.heatDays != null) ? data.reduce((s, m) => s + (m?.heatDays ?? 0), 0) : null
-    const windowNdvi = ndvi ? mean(months.flatMap((m) => ndvi.months[m]?.ndvi == null ? [] : [ndvi.months[m].ndvi!])) : null
-    const differentFamily = crop.family !== current.family
-    const cover = crop.kind === 'cobertura'
+const fmt = (value: number, digits = 0) => value.toLocaleString('pt-BR', { maximumFractionDigits: digits, minimumFractionDigits: digits })
 
-    const moistureFactor = windowSoilMoisture === null ? 1 : 0.85 + 0.3 * Math.min(1, Math.max(0, (windowSoilMoisture - 0.3) / 0.5))
-    let water = windowRain === null ? null : cap(windowRain / crop.water * 100 * moistureFactor)
-    if (water !== null && farm.irrigated) water = Math.max(water, 80)
-    const soil = cap(30 + (differentFamily ? 22 : 0) + (cover ? 25 : 8) + (crop.fixesNitrogen ? 12 : 0)
-      + (farm.soil === 'sandy' && cover ? 10 : 0) + (farm.soil === 'clay' && (id === 'millet' || id === 'brachiaria') ? 6 : 0)
-      + (windowNdvi !== null && windowNdvi < 0.4 && cover ? 8 : 0))
-    const [low, high] = crop.temperature
-    const climateScore = windowTemperature === null ? null :
-      cap(100 - Math.max(low - windowTemperature, windowTemperature - high, 0) * 12 - Math.min(30, (windowHeatDays ?? 0) * (crop.droughtTolerant ? 0.3 : 0.7)) + (crop.droughtTolerant ? 5 : 0))
-    const eco = economics(farm, id)
-    const nSaving = crop.fixesNitrogen ? nitrogenSaving : 0
-    const profitScore = cap(45 + (eco.profit + nSaving) / 80)
-    const scores: Strategy['scores'] = [water, soil, climateScore, profitScore]
-    const w = weights[farm.priority]
-    const total = water === null || climateScore === null ? null : cap(water * w[0] + soil * w[1] + climateScore * w[2] + profitScore * w[3] + (farm.priority === 'inputs' && crop.fixesNitrogen ? 8 : 0) - (farm.priority === 'production' && cover ? 15 : 0))
+function evaluate(id: Crop | 'fallow', farm: Farm, climate: Climate | null, ndvi: Ndvi | null, terrain: Terrain | null, isCurrent: boolean): Strategy {
+  const current: CropInfo = crops[farm.crop]
+  const fallow = id === 'fallow'
+  const crop: CropInfo = fallow ? { ...current, name: 'Pousio (solo parado)', family: '—', kind: 'cobertura', description: 'Deixar o talhão sem cultura até a próxima safra.', water: 0, temperature: [-50, 60], cycle: 4, yield: 0, price: 0, cost: 120, fixesNitrogen: false, droughtTolerant: true, forage: false, deepRoots: false, frostTolerant: true } : crops[id]
+  const months = Array.from({ length: crop.cycle }, (_, i) => (farm.month + i) % 12)
+  const data = months.map((m) => climate?.months[m])
+  const all = <K extends keyof NonNullable<typeof data[0]>>(key: K) => climate !== null && data.every((m) => m?.[key] != null)
+  const total = (key: 'rain' | 'eto' | 'heatDays' | 'frostDays' | 'heavyRainDays') => all(key) ? data.reduce((s, m) => s + (m![key] as number), 0) : null
+  const windowRain = total('rain'), windowEt = total('eto'), windowHeatDays = total('heatDays'), windowFrostDays = total('frostDays'), heavyRain = total('heavyRainDays')
+  const windowTemperature = all('temperature') ? mean(data.map((m) => m!.temperature!)) : null
+  const windowSoilMoisture = all('soilMoisture') ? mean(data.map((m) => m!.soilMoisture!)) : null
+  const windowNdvi = ndvi ? mean(months.flatMap((m) => ndvi.months[m]?.ndvi == null ? [] : [ndvi.months[m].ndvi!])) : null
+  const differentFamily = !fallow && crop.family !== current.family
+  const cover = crop.kind === 'cobertura' && !fallow
+  const steep = terrain !== null && terrain.slope >= 8
+  const erosive = steep || (heavyRain ?? 0) >= 2
 
-    const reasons: string[] = []
-    if (differentFamily) reasons.push('Troca de família (' + current.family + ' → ' + crop.family + '): quebra o ciclo de pragas e doenças.')
-    if (crop.fixesNitrogen) reasons.push('Fixa nitrogênio: economia estimada de R$ ' + nitrogenSaving + '/ha em adubo na próxima cultura.')
-    if (cover) reasons.push('Cobre o solo e forma palhada, reduzindo erosão e perda de água.')
-    if (crop.droughtTolerant) reasons.push('Tolera bem seca e calor.')
-    if (eco.profit > 0) reasons.push('Lucro estimado de R$ ' + Math.round(eco.profit).toLocaleString('pt-BR') + '/ha.')
-    const risks: string[] = []
-    if (!differentFamily) risks.push('Mesma família da cultura atual: atenção a pragas e doenças em comum.')
-    if (windowRain !== null && windowRain < crop.water) risks.push(farm.irrigated ? 'Chuva abaixo da necessidade: será preciso irrigar.' : 'Chuva histórica abaixo da necessidade da cultura (' + Math.round(windowRain) + ' de ' + crop.water + ' mm).')
-    if (windowSoilMoisture !== null && windowSoilMoisture < 0.4) risks.push('Solo historicamente seco nesta época (NASA MERRA-2).')
-    if (windowHeatDays !== null && windowHeatDays >= 10) risks.push(windowHeatDays + ' dias acima de 35 °C no ciclo: risco no florescimento.')
-    if (windowTemperature !== null && (windowTemperature < low || windowTemperature > high)) risks.push('Temperatura média fora da faixa ideal (' + low + '–' + high + ' °C).')
-    if (windowNdvi !== null && windowNdvi < 0.4 && !cover) risks.push('Satélite (MODIS) mostra solo pouco coberto nesta época; considere cobertura depois.')
-    if (cover) risks.push('Não gera venda de grão: o retorno vem do solo e da próxima safra.')
-    return {
-      id, name: crop.name, kind: crop.kind, description: crop.description, sequence: current.name + ' → ' + crop.name, reasons, risks,
-      months: monthShort[months[0]] + '–' + monthShort[months[months.length - 1]], waterNeed: crop.water,
-      windowRain, windowTemperature, windowSoilMoisture, windowHeatDays, windowNdvi, scores, total,
-      profitHa: eco.profit, revenueHa: eco.revenue, costHa: eco.cost, nSaving, waterSaved: Math.max(0, current.water - crop.water),
-    }
-  }).sort((a, b) => (b.total ?? -1) - (a.total ?? -1) || b.scores[3] - a.scores[3]).slice(0, top)
+  const moistureFactor = windowSoilMoisture === null ? 1 : 0.85 + 0.3 * Math.min(1, Math.max(0, (windowSoilMoisture - 0.3) / 0.5))
+  let water = windowRain === null ? null : fallow ? 100 : cap(windowRain / crop.water * 100 * moistureFactor)
+  if (water !== null && farm.irrigated) water = Math.max(water, 80)
+  const soil = fallow ? cap(15 - (erosive ? 10 : 0) + (windowNdvi !== null && windowNdvi > 0.5 ? 10 : 0)) : cap(30 + (differentFamily ? 22 : 0) + (cover ? 25 : 8) + (crop.fixesNitrogen ? 12 : 0) + (crop.deepRoots ? 6 : 0)
+    + (farm.soil === 'sandy' && cover ? 10 : 0) + (farm.soil === 'clay' && crop.deepRoots ? 6 : 0)
+    + (windowNdvi !== null && windowNdvi < 0.4 && cover ? 8 : 0) + (erosive && (cover || crop.deepRoots) ? 8 : 0) - (isCurrent && !fallow ? 15 : 0))
+  const [low, high] = crop.temperature
+  const frostPenalty = crop.frostTolerant ? 0 : Math.min(40, (windowFrostDays ?? 0) * 8)
+  const climateScore = windowTemperature === null ? null : fallow ? 100 :
+    cap(100 - Math.max(low - windowTemperature, windowTemperature - high, 0) * 12 - Math.min(30, (windowHeatDays ?? 0) * (crop.droughtTolerant ? 0.3 : 0.7)) - frostPenalty + (crop.droughtTolerant ? 5 : 0))
+  const eco = fallow ? { yieldHa: 0, price: 0, cost: crop.cost, revenue: 0, profit: -crop.cost, unit: '' } : economics(farm, id as Crop)
+  const nSaving = crop.fixesNitrogen && !fallow ? nitrogenSaving : 0
+  const forageValue = farm.cattle && crop.forage ? 600 : 0
+  const profitScore = cap(45 + (eco.profit + nSaving + forageValue) / 80)
+  const scores: Strategy['scores'] = [water, soil, climateScore, profitScore]
+  const w = weights[farm.priority]
+  const bonus = (farm.priority === 'inputs' && crop.fixesNitrogen ? 8 : 0) - (farm.priority === 'production' && (cover || fallow) ? 15 : 0)
+    + (farm.priority === 'forage' && crop.forage ? 15 : 0) + (farm.priority === 'erosion' && (cover || crop.deepRoots) ? 10 : 0)
+  const totalScore = water === null || climateScore === null ? null : cap(water * w[0] + soil * w[1] + climateScore * w[2] + profitScore * w[3] + bonus)
+
+  const why = isCurrent ? 'É o que você faz hoje: serve de referência para comparar as outras opções.'
+    : cover ? 'Sugerida para proteger e recuperar o solo na ' + seasonOf(farm.month).name.toLowerCase() + (erosive ? ', com risco de erosão na área.' : '.')
+    : crop.droughtTolerant ? 'Sugerida por aguentar melhor seca e calor nesta época.' : 'Sugerida por gerar renda na janela escolhida trocando a família da cultura.'
+  const reasons: string[] = []
+  if (differentFamily) reasons.push('Troca de família (' + current.family + ' → ' + crop.family + '): interrompe o ciclo de pragas e doenças.')
+  if (crop.fixesNitrogen && !fallow) reasons.push('Fixa nitrogênio do ar: economia estimada de R$ ' + nitrogenSaving + '/ha em adubo na próxima cultura.')
+  if (cover) reasons.push('Cobre o solo e forma palhada: menos erosão, mais matéria orgânica e mais água infiltrando.')
+  if (crop.deepRoots && !fallow) reasons.push('Raízes profundas: rompem camadas compactadas e buscam água mais funda.')
+  if (crop.droughtTolerant && !fallow) reasons.push('Tolera seca e calor.')
+  if (crop.forage && !fallow) reasons.push(farm.cattle ? 'Serve de forragem para o gado na entressafra (valor estimado R$ 600/ha).' : 'Pode servir de forragem para gado.')
+  if (eco.profit > 0) reasons.push('Lucro estimado de R$ ' + fmt(eco.profit) + '/ha.')
+  if (fallow) reasons.push('Sem custo de semente e sem uso de água pela cultura.')
+
+  const evidence: string[] = []
+  if (windowRain !== null) evidence.push('Chuva no ciclo (NASA POWER): ' + fmt(windowRain) + ' mm' + (fallow ? '' : ' para ' + crop.water + ' mm de necessidade.'))
+  if (windowRain !== null && windowEt !== null) evidence.push('Balanço hídrico (chuva − evapotranspiração): ' + fmt(windowRain - windowEt) + ' mm no período.')
+  if (windowTemperature !== null) evidence.push('Temperatura média ' + fmt(windowTemperature, 1) + ' °C' + (fallow ? '.' : ' (ideal ' + low + '–' + high + ' °C).'))
+  if (windowSoilMoisture !== null) evidence.push('Umidade do solo (MERRA-2): ' + fmt(windowSoilMoisture * 100) + '%.')
+  if (windowHeatDays !== null) evidence.push(windowHeatDays + ' dias acima de 35 °C' + (windowFrostDays !== null ? ' e ' + windowFrostDays + ' com risco de geada.' : '.'))
+  if (windowNdvi !== null) evidence.push('Vegetação (NDVI MODIS) nesta época: ' + fmt(windowNdvi, 2) + (windowNdvi < 0.4 ? ' (solo pouco coberto).' : '.'))
+  if (terrain) evidence.push('Declividade (SRTM): ' + fmt(terrain.slope, 1) + '%, risco de erosão ' + terrain.erosion + '.')
+
+  const risks: string[] = []
+  if (fallow) risks.push('Solo descoberto: erosão, perda de água e crescimento de plantas daninhas.')
+  if (isCurrent && !fallow) risks.push('Repetir a mesma cultura favorece pragas, doenças e nematoides.')
+  else if (!differentFamily && !fallow) risks.push('Mesma família da cultura atual: atenção a pragas e doenças em comum.')
+  if (!fallow && windowRain !== null && windowRain < crop.water) risks.push(farm.irrigated ? 'Chuva abaixo da necessidade: será preciso irrigar.' : 'Chuva histórica abaixo da necessidade da cultura.')
+  if (!fallow && windowSoilMoisture !== null && windowSoilMoisture < 0.4) risks.push('Solo historicamente seco nesta época.')
+  if (!fallow && windowHeatDays !== null && windowHeatDays >= 10) risks.push('Muitos dias de calor extremo: risco no florescimento.')
+  if (!fallow && frostPenalty > 0) risks.push('Risco de geada durante o ciclo.')
+  if (!fallow && windowTemperature !== null && (windowTemperature < low || windowTemperature > high)) risks.push('Temperatura média fora da faixa ideal.')
+  if (cover) risks.push('Não gera venda de grão: o retorno vem do solo, da economia de adubo e da próxima safra.')
+  if (!fallow && smallSeeds.includes(id as Crop)) risks.push('Exige plantadeira para sementes miúdas ou semeadura a lanço.')
+
+  if (!risks.length) risks.push('Nenhum risco climático forte nos dados; confirme a janela de plantio e a cultivar com o agrônomo.')
+  const gaps: string[] = []
+  if (farm.soil === 'unknown') gaps.push('Tipo de solo não informado: uma análise de solo (ou SSURGO/WSS nos EUA) melhora a recomendação.')
+  else gaps.push('Solo informado pelo produtor, sem análise de laboratório.')
+  if (windowSoilMoisture === null) gaps.push('Sem umidade do solo para este ponto (SMAP ou MERRA-2).')
+  if (ndvi === null) gaps.push('Sem imagem de vegetação (MODIS/Landsat/Sentinel-2) para este ponto.')
+  if (terrain === null) gaps.push('Sem dados de relevo (SRTM): risco de erosão estimado só pela chuva.')
+  if (!fallow && !isCurrent && !farm.prices[id as Crop]) gaps.push('Preço, custo e produtividade são valores de referência; confirme no mercado local.')
+  gaps.push('Pragas, doenças e cultivares locais precisam de revisão do agrônomo.')
+
+  return {
+    id, name: crop.name, kind: fallow ? 'pousio' : crop.kind, description: crop.description, isCurrent,
+    sequence: isCurrent ? (fallow ? current.name + ' → pousio' : current.name + ' → ' + current.name) : current.name + ' → ' + crop.name,
+    why, reasons, evidence, risks, gaps,
+    months: monthShort[months[0]] + '–' + monthShort[months[months.length - 1]], waterNeed: crop.water,
+    windowRain, windowEt, windowTemperature, windowSoilMoisture, windowHeatDays, windowFrostDays, windowNdvi, scores, total: totalScore,
+    profitHa: eco.profit, revenueHa: eco.revenue, costHa: eco.cost, nSaving, waterSaved: Math.max(0, current.water - crop.water),
+  }
 }
+
+/** Rotação atual + até `top` alternativas, em ordem de nota. */
+export function compare(farm: Farm, climate: Climate | null, ndvi: Ndvi | null = null, top = 3, terrain: Terrain | null = null): Strategy[] {
+  const alternatives = candidates(farm).map((id) => evaluate(id, farm, climate, ndvi, terrain, false))
+    .sort((a, b) => (b.total ?? -1) - (a.total ?? -1) || b.scores[3] - a.scores[3]).slice(0, top)
+  const currentId = crops[farm.crop].plant.includes(farm.month) ? farm.crop : 'fallow'
+  return [evaluate(currentId, farm, climate, ndvi, terrain, true), ...alternatives]
+}
+export const alternativesOf = (strategies: Strategy[]) => strategies.filter((s) => !s.isCurrent)
 
 /** Problemas da região a partir dos dados da NASA. */
-export function regionProblems(climate: Climate | null, ndvi: Ndvi | null, impact: EnsoImpact, soil: Soil) {
-  const problems: { title: string; text: string; level: 'alto' | 'médio' }[] = []
-  if (climate?.dryMonths != null && climate.dryMonths >= 4) problems.push({ title: 'Estação seca longa', text: climate.dryMonths + ' meses com menos de 60 mm de chuva. A janela de plantio é curta.', level: climate.dryMonths >= 6 ? 'alto' : 'médio' })
+export function regionProblems(climate: Climate | null, ndvi: Ndvi | null, impact: EnsoImpact, soil: Soil, terrain: Terrain | null = null) {
+  const problems: { title: string; text: string; level: 'alto' | 'médio'; source: string }[] = []
+  if (climate?.dryMonths != null && climate.dryMonths >= 4) problems.push({ title: 'Estação seca longa', text: climate.dryMonths + ' meses com menos de 60 mm de chuva. A janela de plantio é curta.', level: climate.dryMonths >= 6 ? 'alto' : 'médio', source: 'NASA POWER' })
+  if (climate?.rain != null && climate.eto != null && climate.eto > climate.rain) problems.push({ title: 'Déficit hídrico', text: 'A atmosfera "puxa" ' + fmt(climate.eto) + ' mm de água por ano (evapotranspiração) e chove ' + fmt(climate.rain) + ' mm.', level: climate.eto > climate.rain * 1.3 ? 'alto' : 'médio', source: 'NASA POWER' })
   const monthlyRain = climate?.months.map((m) => m.rain ?? 0) ?? []
-  if (climate?.rain && Math.max(...monthlyRain) > climate.rain * 0.22) problems.push({ title: 'Chuva concentrada', text: 'Muita chuva em poucos meses aumenta erosão e perda de nutrientes.', level: 'médio' })
-  if (climate?.heatDays != null && climate.heatDays >= 20) problems.push({ title: 'Calor extremo', text: climate.heatDays + ' dias acima de 35 °C no ano: risco de abortamento de flores.', level: climate.heatDays >= 60 ? 'alto' : 'médio' })
-  if (climate?.soilMoisture != null && climate.soilMoisture < 0.45) problems.push({ title: 'Solo seco', text: 'Umidade média do solo baixa (NASA MERRA-2). Palhada ajuda a guardar água.', level: 'médio' })
-  if (climate?.rain != null && climate.rain < 700) problems.push({ title: 'Pouca chuva no ano', text: Math.round(climate.rain) + ' mm no ano: prefira culturas tolerantes à seca.', level: 'alto' })
-  if (ndvi?.low != null && ndvi.low < 0.35) problems.push({ title: 'Solo descoberto parte do ano', text: 'O satélite MODIS mostra pouca vegetação em alguns meses. Plantas de cobertura protegem o solo.', level: 'médio' })
-  if (impact.elnino < 0.9 || impact.lanina < 0.9) problems.push({ title: 'Sensível a El Niño / La Niña', text: impact.elnino < impact.lanina ? 'El Niño: ' + impact.elninoText : 'La Niña: ' + impact.laninaText, level: 'alto' })
-  if (soil === 'sandy') problems.push({ title: 'Solo arenoso', text: 'Retém pouca água e nutrientes; manter palhada é essencial.', level: 'médio' })
+  if (climate?.rain && Math.max(...monthlyRain) > climate.rain * 0.22) problems.push({ title: 'Chuva concentrada', text: 'Muita chuva em poucos meses aumenta erosão e perda de nutrientes.', level: 'médio', source: 'NASA POWER' })
+  if (climate?.heavyRainDays != null && climate.heavyRainDays >= 2) problems.push({ title: 'Chuvas extremas', text: climate.heavyRainDays + ' dias com 50 mm ou mais: risco de enxurrada e erosão.', level: climate.heavyRainDays >= 5 ? 'alto' : 'médio', source: 'NASA POWER' })
+  if (climate?.heatDays != null && climate.heatDays >= 20) problems.push({ title: 'Calor extremo', text: climate.heatDays + ' dias acima de 35 °C no ano: risco de abortamento de flores.', level: climate.heatDays >= 60 ? 'alto' : 'médio', source: 'NASA POWER' })
+  if (climate?.frostDays != null && climate.frostDays >= 1) problems.push({ title: 'Risco de geada', text: climate.frostDays + ' dias com mínima abaixo de 2 °C. Evite culturas sensíveis no inverno.', level: climate.frostDays >= 10 ? 'alto' : 'médio', source: 'NASA POWER' })
+  if (climate?.soilMoisture != null && climate.soilMoisture < 0.45) problems.push({ title: 'Solo seco', text: 'Umidade média do solo baixa. Palhada ajuda a guardar água.', level: 'médio', source: 'MERRA-2' })
+  if (climate?.rain != null && climate.rain < 700) problems.push({ title: 'Pouca chuva no ano', text: fmt(climate.rain) + ' mm no ano: prefira culturas tolerantes à seca.', level: 'alto', source: 'NASA POWER' })
+  if (ndvi?.low != null && ndvi.low < 0.35) problems.push({ title: 'Solo descoberto parte do ano', text: 'O satélite mostra pouca vegetação em alguns meses. Plantas de cobertura protegem o solo.', level: 'médio', source: 'MODIS' })
+  if (terrain && terrain.erosion !== 'baixo') problems.push({ title: 'Terreno inclinado', text: 'Declividade de ' + fmt(terrain.slope, 1) + '%: a água escorre e leva solo. Cobertura e plantio em nível ajudam.', level: terrain.erosion === 'alto' ? 'alto' : 'médio', source: 'SRTM' })
+  if (impact.elnino < 0.9 || impact.lanina < 0.9) problems.push({ title: 'Sensível a El Niño / La Niña', text: impact.elnino < impact.lanina ? 'El Niño: ' + impact.elninoText : 'La Niña: ' + impact.laninaText, level: 'alto', source: 'NOAA ONI' })
+  if (soil === 'sandy') problems.push({ title: 'Solo arenoso', text: 'Retém pouca água e nutrientes; manter palhada é essencial.', level: 'médio', source: 'Produtor' })
   return problems
+}
+
+/** Calendário de vulnerabilidade: em que meses o solo fica descoberto ou a cultura sofre. */
+export type Flag = 'descoberto' | 'seca' | 'calor' | 'geada' | 'enxurrada'
+export function vulnerabilityCalendar(climate: Climate | null, ndvi: Ndvi | null) {
+  return (climate?.months ?? []).map((m, i) => {
+    const flags: Flag[] = []
+    const n = ndvi?.months[i]?.ndvi
+    if (n != null && n < 0.35) flags.push('descoberto')
+    if (m.rain != null && (m.eto != null ? m.rain < m.eto * 0.5 : m.rain < 60)) flags.push('seca')
+    if ((m.heatDays ?? 0) >= 5) flags.push('calor')
+    if ((m.frostDays ?? 0) >= 1) flags.push('geada')
+    if ((m.heavyRainDays ?? 0) >= 1) flags.push('enxurrada')
+    return { name: m.name, flags, balance: m.rain != null && m.eto != null ? m.rain - m.eto : null }
+  })
 }
 
 /** Plano de 3 anos (6 safras): cultura atual na 1ª safra e rotação na 2ª, comparado a cultura atual + pousio. */
@@ -162,8 +244,9 @@ export type Scenario = 'neutral' | 'elnino' | 'lanina'
 export interface PlanSeason { label: string; crop: string; soil: number; baselineSoil: number; profit: Record<Scenario, number>; baseline: number }
 export function longTermPlan(farm: Farm, strategies: Strategy[], climate: Climate | null, impact: EnsoImpact) {
   const area = Math.max(0, Number(farm.area) || 0) || 1
-  const cash = strategies.find((s) => s.kind !== 'cobertura') ?? null
-  const cover = strategies.find((s) => s.kind === 'cobertura') ?? null
+  const options = alternativesOf(strategies)
+  const cash = options.find((s) => s.kind !== 'cobertura') ?? null
+  const cover = options.find((s) => s.kind === 'cobertura') ?? null
   const rotation = [cash ?? cover, cover ?? cash, cash ?? cover].filter(Boolean) as Strategy[]
   const current = economics(farm, farm.crop)
   const drought = climate?.dryMonths != null && climate.dryMonths >= 5 ? 0.95 : 1

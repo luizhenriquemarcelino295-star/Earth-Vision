@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import sample from '../public/power-sorriso-2025.json'
-import { locations, parsePower, powerUrl, type Climate } from './power'
-import { candidates, compare, cropList, crops, defaultFarm, longTermPlan, regionProblems, seasonOf } from './rotation'
+import { applyScenario, locations, parsePower, powerUrl, type Climate } from './power'
+import { alternativesOf, candidates, compare, cropList, crops, defaultFarm, longTermPlan, regionProblems, seasonOf, vulnerabilityCalendar, type Crop } from './rotation'
+import { parseTerrain } from './terrain'
 import { ensoImpact } from './enso'
 import { parsePlaces } from './geo'
 import { exportReport } from './report'
@@ -22,7 +23,7 @@ vi.mock('jspdf', async (original) => {
           expect(data.startsWith('%PDF-')).toBe(true)
           expect(data).toContain('Relatório de rotação de culturas')
           expect(data).toContain('Proposta de plantio')
-          expect(data).toContain('Plano de 3 anos')
+          expect(data).toContain('Rotação atual')
           expect(data).toContain('Problemas da regi')
           return this
         }) as unknown as typeof this.save
@@ -61,22 +62,41 @@ describe('NASA POWER', () => {
 })
 
 describe('rotação de culturas', () => {
-  it('propõe até três culturas diferentes da atual, plantáveis no mês, em ordem de nota', () => {
+  it('sempre inclui a rotação atual e até três alternativas plantáveis no mês', () => {
     for (const crop of cropList) for (const month of [1, 4, 9]) {
       const farm = { ...defaultFarm, crop, month }
       const strategies = compare(farm, climate)
-      expect(strategies.length).toBe(Math.min(3, candidates(farm).length))
-      expect(strategies.every((s) => s.id !== crop && crops[s.id].plant.includes(month))).toBe(true)
-      expect(strategies.map((s) => s.total)).toEqual([...strategies].sort((a, b) => b.total! - a.total!).map((s) => s.total))
+      expect(strategies[0].isCurrent).toBe(true)
+      const options = alternativesOf(strategies)
+      expect(options.length).toBe(Math.min(3, candidates(farm).length))
+      expect(options.every((s) => s.id !== crop && s.id !== 'fallow' && crops[s.id].plant.includes(month))).toBe(true)
+      expect(options.map((s) => s.total)).toEqual([...options].sort((a, b) => b.total! - a.total!).map((s) => s.total))
+      expect(strategies.every((s) => s.why && s.evidence.length && s.gaps.length && s.risks.length)).toBe(true)
     }
   })
-  it('muda a resposta conforme a prioridade e calcula a economia', () => {
-    const profit = compare({ ...defaultFarm, priority: 'profit' }, climate)
-    const soil = compare({ ...defaultFarm, priority: 'soil' }, climate)
+  it('usa pousio como rotação atual quando a cultura não cabe no mês', () => {
+    expect(compare({ ...defaultFarm, crop: 'soybean', month: 1 }, climate)[0].id).toBe('fallow')
+    expect(compare({ ...defaultFarm, crop: 'corn', month: 1 }, climate)[0].id).toBe('corn')
+  })
+  it('respeita mercado, equipamento e prioridade', () => {
+    const noMarket = alternativesOf(compare({ ...defaultFarm, markets: [], smallSeedPlanter: false }, climate))
+    expect(noMarket).toHaveLength(0)
+    const profit = alternativesOf(compare({ ...defaultFarm, priority: 'profit' }, climate))
+    const soil = alternativesOf(compare({ ...defaultFarm, priority: 'soil' }, climate))
     expect(profit[0].kind).not.toBe('cobertura')
     expect(soil[0].kind).toBe('cobertura')
+    const forage = alternativesOf(compare({ ...defaultFarm, priority: 'forage', cattle: true }, climate))
+    expect(crops[forage[0].id as Crop].forage).toBe(true)
     const custom = compare({ ...defaultFarm, priority: 'profit', prices: { corn: { price: 100 } } }, climate).find((s) => s.id === 'corn')!
     expect(custom.revenueHa).toBe(110 * 100)
+  })
+  it('recalcula com o cenário "e se"', () => {
+    const dry = applyScenario(climate, -40, 2)
+    expect(dry.rain!).toBeCloseTo(climate.rain! * 0.6)
+    expect(dry.eto!).toBeGreaterThan(climate.eto!)
+    const a = alternativesOf(compare(defaultFarm, climate)).find((s) => s.id === 'corn')
+    const b = alternativesOf(compare(defaultFarm, dry)).find((s) => s.id === 'corn')
+    if (a && b) expect(b.scores[0]!).toBeLessThan(a.scores[0]!)
   })
   it('classifica a safra pelo mês', () => {
     expect(seasonOf(9).name).toContain('verão')
@@ -93,10 +113,19 @@ describe('rotação de culturas', () => {
     expect(last.soil).toBeGreaterThan(last.baselineSoil)
     expect(last.profit.lanina).toBeLessThan(last.profit.neutral)
   })
-  it('identifica problemas e a sensibilidade a El Niño', () => {
+  it('identifica problemas, erosão e meses vulneráveis', () => {
     expect(impact.region).toContain('Centro-Oeste')
     expect(ensoImpact({ lat: -30, lon: -53, name: '' }).lanina).toBeLessThan(1)
-    expect(regionProblems(climate, null, impact, 'sandy').some((p) => p.title === 'Solo arenoso')).toBe(true)
+    const terrain = parseTerrain({ results: [{ elevation: 500 }, { elevation: 560 }, { elevation: 470 }, { elevation: 500 }, { elevation: 500 }] })
+    expect(terrain.slope).toBeCloseTo(9)
+    expect(terrain.erosion).toBe('alto')
+    const problems = regionProblems(climate, null, impact, 'sandy', terrain)
+    expect(problems.some((p) => p.title === 'Terreno inclinado')).toBe(true)
+    expect(problems.some((p) => p.title === 'Déficit hídrico' || p.title === 'Estação seca longa')).toBe(true)
+    const calendar = vulnerabilityCalendar(climate, null)
+    expect(calendar).toHaveLength(12)
+    expect(calendar[6].flags).toContain('seca')
+    expect(climate.eto).toBeGreaterThan(1000)
   })
   it('lê a busca de cidades', () => {
     const places = parsePlaces({ results: [{ name: 'Rosario', latitude: -32.9468, longitude: -60.6393, country: 'Argentina', admin1: 'Santa Fe' }] })
