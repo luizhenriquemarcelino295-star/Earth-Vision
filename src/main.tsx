@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { createRoot } from 'react-dom/client'
 import { CircleMarker, MapContainer, TileLayer, Tooltip as MapTooltip, useMap, useMapEvents } from 'react-leaflet'
 import { Area, Bar, CartesianGrid, ComposedChart, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { AlertTriangle, ArrowLeft, ArrowRight, Check, CloudRain, Coins, Droplets, FileDown, Flame, Globe2, Leaf, LocateFixed, MapPin, Satellite, Search, Sprout, Sun, Thermometer, TrendingUp, Waves } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, ArrowRight, Check, CloudRain, Coins, Droplets, FileDown, Flame, Globe2, Leaf, LocateFixed, MapPin, Pause, Play, Satellite, Search, Sprout, Sun, Thermometer, TrendingUp, Waves } from 'lucide-react'
 import '@fontsource-variable/inter'
 import 'leaflet/dist/leaflet.css'
 import './style.css'
@@ -65,6 +65,40 @@ function CitySearch({ select }: { select: (location: Location) => void }) {
     {status && <small role="status">{status}</small>}
     {results && results.length > 0 && <ul className="results-list">{results.map((place) => <li key={place.lat + ',' + place.lon}><button type="button" onClick={() => { select(place); setResults(null); setQuery('') }}><MapPin size={14} /> {place.name}</button></li>)}</ul>}
   </div>
+}
+
+function HeroVideo() {
+  const video = useRef<HTMLVideoElement>(null)
+  const [playing, setPlaying] = useState(false)
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    const preference = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const syncPlayback = () => {
+      if (preference.matches) video.current?.pause()
+      else void video.current?.play().catch(() => {})
+    }
+    syncPlayback()
+    preference.addEventListener('change', syncPlayback)
+    return () => preference.removeEventListener('change', syncPlayback)
+  }, [])
+  function togglePlayback() {
+    const player = video.current
+    if (!player) return
+    if (player.paused) void player.play().catch(() => {})
+    else player.pause()
+  }
+  return <>
+    <div className="hero-media" aria-hidden="true">
+      <video ref={video} muted loop playsInline preload="metadata"
+        src={import.meta.env.BASE_URL + 'earth-orbit.mp4'}
+        onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}
+        onError={() => setFailed(true)} />
+    </div>
+    {!failed && <button className="hero-playback" type="button" onClick={togglePlayback}
+      aria-label={playing ? 'Pausar animação da Terra' : 'Reproduzir animação da Terra'}>
+      {playing ? <Pause size={17} /> : <Play size={17} />}
+    </button>}
+  </>
 }
 
 function App() {
@@ -138,11 +172,10 @@ function App() {
       <a className="challenge" target="_blank" rel="noreferrer" href={challenge}><Satellite size={15} /> NASA Space Apps 2026</a>
     </div></header>
     <main id="inicio">
-      <section className="hero"><div className="shell hero-inner">
+      <section className="hero"><HeroVideo /><div className="shell hero-inner">
         <div className="hero-copy"><p className="eyebrow"><Satellite size={16} /> Dados de satélite da NASA para o campo</p><h1>Planeje sua<br />próxima <em>safra.</em></h1>
           <p>Em 5 passos: diga onde fica sua fazenda, veja os problemas de clima da região e receba uma proposta de rotação com custo, lucro e plano para 3 anos.</p>
           <button className="button primary" onClick={() => { setStep(0); document.getElementById('fluxo')?.scrollIntoView({ behavior: 'smooth' }) }}>Começar agora <ArrowRight size={18} /></button></div>
-        <div className="hero-art" aria-hidden="true"><div className="orbit orbit-one"></div><div className="orbit orbit-two"></div><div className="planet"></div><div className="star one"></div><div className="star two"></div><div className="star three"></div></div>
       </div></section>
 
       <div className="shell content" id="fluxo">
