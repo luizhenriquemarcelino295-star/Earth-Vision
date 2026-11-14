@@ -67,6 +67,6 @@ A pontuação é exploratória. Os valores de demanda hídrica orientam a compar
 - [Embrapa | Água nas culturas de milho, sorgo e milheto](https://www.infoteca.cnptia.embrapa.br/infoteca/handle/doc/1190579)
 - [OpenStreetMap](https://www.openstreetmap.org/copyright)
 
-## Recursos do desafio
+## Base de dados e dicionário
 
-A seção **Desafio** do site lista todos os recursos indicados pela NASA, marcando os já usados (NASA POWER, MERRA-2, MODIS, SRTM, NOAA ONI) e os recomendados para a próxima versão (SMAP, GPM IMERG, ECOSTRESS, Landsat, GRACE, NLDAS/GLDAS, GEDI, Sentinel-2, ERA5, FAO GAEZ e bases do USDA), que exigem login no Earthdata ou cobrem só os EUA.
+A seção **De onde vêm as informações** lista só as fontes usadas (NASA POWER, MERRA-2, MODIS, SRTM, NOAA ONI, FAO/Embrapa e Open-Meteo), com o que usamos de cada uma e para quê. O **Dicionário do campo** explica termos como evapotranspiração, El Niño, NDVI e safrinha: basta tocar na palavra.
