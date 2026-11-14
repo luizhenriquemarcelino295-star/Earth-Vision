@@ -138,6 +138,19 @@ details.enso>summary span{flex:1;color:#365044}details.enso>summary em{font-styl
 
 @media(max-width:860px){.plan-extra{grid-template-columns:1fr}}
 
+
+
+
+.source-about{font-size:14.5px;line-height:1.55;color:#243b30;background:#f2f8f2;border-radius:10px;padding:12px}
+.source-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}.source-cols p{font-size:13px;line-height:1.5;color:#334d40;margin-bottom:8px}
+.source-facts>b{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.source-facts dl{margin:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
+.source-facts dl div{background:#fbfdfa;border:1px solid var(--border);border-radius:8px;padding:7px 9px}.source-facts dt{font-size:11px;color:var(--muted)}.source-facts dd{margin:2px 0 0;font-weight:750;color:#182e24;font-size:14px}
+.source-links{display:flex;flex-wrap:wrap;gap:8px}
+.source-cols{grid-template-columns:minmax(0,1fr)}
+.source-facts dl{grid-template-columns:repeat(auto-fit,minmax(min(120px,100%),1fr))}
+.source-links .button{white-space:normal;overflow-wrap:anywhere}
+
 .source-layout{
   display:grid;
   grid-template-columns:minmax(0,3fr) minmax(230px,1fr);

@@ -10,8 +10,8 @@ import { applyScenario, challenge, fetchClimate, format, locations, monthNames, 
 import { fetchNdvi, ndviProduct, type Ndvi } from './ndvi'
 import { locateMe, searchPlaces, type Place } from './geo'
 import { ensoDocs, ensoImpact, ensoOutlook, phaseNames, yearPhase, type Phase } from './enso'
-import { challengeSteps, dataSources, glossary } from './challenge'
-import { fetchTerrain, srtmDocs, type Terrain } from './terrain'
+import { challengeSteps, dataSources, glossary, type DataSource } from './challenge'
+import { fetchTerrain, srtmDocs, terrainUrl, type Terrain } from './terrain'
 import { alternativesOf, marketGroups, compare, criteria, vulnerabilityCalendar, cropList, crops, defaultFarm, economics, embrapa, fao, limits, longTermPlan, methodology, priorities, regionProblems, seasonOf, soils, weights, type Crop, type Farm, type Scenario } from './rotation'
 
 function readSaved<T>(key: string, fallback: T, validate: (value: T) => boolean): T {
@@ -113,7 +113,8 @@ function Dictionary() {
   </div>
 }
 
-function DataSources() {
+interface SourceFacts { facts: [string, string][]; dataUrl?: string; dataLabel?: string; note?: string }
+function DataSources({ info }: { info: Record<DataSource['id'], SourceFacts> }) {
   const [expanded, setExpanded] = useState<string[]>([])
   return <div className="source-layout">
     <div className="source-grid">
@@ -131,13 +132,21 @@ function DataSources() {
       })}
     </div>
     <div className="source-panels">
-      {dataSources.map((source, index) => <article className="panel source-description" key={source.name}
+      {dataSources.map((source, index) => { const data = info[source.id]; return <article className="panel source-description" key={source.name}
         id={'source-details-' + index} hidden={!expanded.includes(source.name)}>
         <h3>{source.name}</h3>
-        <p><b>O que usamos:</b> {source.what}</p>
-        <p><b>Para quê:</b> {source.idea}</p>
-        <a href={source.url} target="_blank" rel="noreferrer">Abrir fonte oficial ↗</a>
-      </article>)}
+        <p className="source-about">{source.about}</p>
+        <div className="source-cols">
+          <div><p><b>O que usamos:</b> {source.what}</p><p><b>Para quê:</b> {source.idea}</p></div>
+          <div className="source-facts"><b>Para o seu local</b>
+            {data.facts.length ? <dl>{data.facts.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl> : <p className="hint">{data.note ?? 'Ainda sem dados para este ponto.'}</p>}
+          </div>
+        </div>
+        <div className="source-links">
+          {data.dataUrl && <a className="button primary-solid" href={data.dataUrl} target="_blank" rel="noreferrer">{data.dataLabel ?? 'Ver os dados'} ↗</a>}
+          <a className="button secondary" href={source.url} target="_blank" rel="noreferrer">Site da fonte ↗</a>
+        </div>
+      </article> })}
     </div>
   </div>
 }
@@ -229,6 +238,16 @@ function App() {
   const gain = last ? last.profit[scenario] - last.baseline : 0
   const loading = !climate && !active?.error
 
+  const unavailable = 'Indisponível agora (sem conexão com a fonte).'
+  const sourceInfo: Record<DataSource['id'], SourceFacts> = {
+    power: { facts: baseClimate ? [['Chuva no ano', format(baseClimate.rain, 0) + ' mm'], ['Temperatura média', format(baseClimate.temperature) + ' °C'], ['Radiação solar', format(baseClimate.solar) + ' MJ/m²/dia'], ['Dias acima de 35 °C', format(baseClimate.heatDays, 0)], ['Dias com risco de geada', format(baseClimate.frostDays, 0)], ['Ano', String(baseClimate.year)]] : [], dataUrl: baseClimate?.url, dataLabel: 'Ver os dados deste local', note: unavailable },
+    merra: { facts: baseClimate?.soilMoisture != null ? [['Umidade do solo (média)', format(baseClimate.soilMoisture * 100, 0) + '%'], ['Mês mais seco', (() => { const m = [...baseClimate.months].filter((x) => x.soilMoisture != null).sort((a, b) => a.soilMoisture! - b.soilMoisture!)[0]; return m ? m.name + ' (' + format(m.soilMoisture! * 100, 0) + '%)' : '—' })()]] : [], dataUrl: baseClimate?.url, dataLabel: 'Ver os dados deste local', note: unavailable },
+    modis: { facts: ndvi ? [['NDVI médio', format(ndvi.mean, 2)], ['Mais verde', format(ndvi.peak, 2)], ['Menos verde', format(ndvi.low, 2)], ['Imagens usadas', String(ndvi.composites)]] : [], dataUrl: ndvi?.url, dataLabel: 'Ver as imagens deste local', note: ndviDone ? unavailable : 'Carregando…' },
+    srtm: { facts: terrain ? [['Altitude', terrain.elevation + ' m'], ['Declividade', format(terrain.slope) + '%'], ['Risco de erosão', terrain.erosion]] : [], dataUrl: terrainUrl(location), dataLabel: 'Ver o relevo deste local', note: terrainDone ? unavailable : 'Carregando…' },
+    oni: { facts: [['Ano analisado', year + ' · ' + phaseNames[phase.phase]], ['Resumo', phase.text], ['Sua região', impact.region]], dataUrl: ensoOutlook, dataLabel: 'Ver previsão atual' },
+    fao: { facts: [['Cultura atual', crops[farm.crop].name], ['Água no ciclo', crops[farm.crop].water + ' mm'], ['Temperatura ideal', crops[farm.crop].temperature.join(' a ') + ' °C'], ['Ciclo', crops[farm.crop].cycle + ' meses']] },
+    geo: { facts: [['Local', location.name], ['Coordenadas', location.lat.toFixed(4) + ', ' + location.lon.toFixed(4)]], dataUrl: 'https://www.openstreetmap.org/?mlat=' + location.lat + '&mlon=' + location.lon + '#map=11/' + location.lat + '/' + location.lon, dataLabel: 'Ver no mapa' },
+  }
   return <>
     <header className="top"><div className="shell top-inner">
       <a href="#inicio" className="brand"><span className="brand-icon"><Globe2 size={23} /></span>EarthVision</a>
@@ -430,7 +449,7 @@ function App() {
         </section>
         <section id="dados" className="section">
           <div className="section-head"><div><p className="eyebrow"><Satellite size={16} /> Base de dados</p><h2>De onde vêm as informações</h2><p>As fontes que o EarthVision usa e o que tiramos de cada uma.</p></div></div>
-          <DataSources />
+          <DataSources info={sourceInfo} />
           <details className="panel method about"><summary>Sobre o projeto (NASA Space Apps Challenge 2026)</summary>
             <p className="hint">O EarthVision foi criado para o desafio <a href={challenge} target="_blank" rel="noreferrer">Field Shift: Adapting Farms with NASA Data</a>. Veja como cada pedido do desafio foi atendido:</p>
             <ol className="about-list">{challengeSteps.map((c) => <li key={c.title}><b>{c.title}.</b> {c.how}</li>)}</ol></details>
