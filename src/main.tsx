@@ -160,14 +160,16 @@ function App() {
     const number = Number(value)
     setFarm((previous) => ({ ...previous, prices: { ...previous.prices, [crop]: { ...previous.prices[crop], [field]: value === '' || !Number.isFinite(number) ? undefined : number } } }))
   }
-  async function download() {
-    if (!climate) return
-    setReportStatus('Gerando PDF…')
+  async function download(preview = false) {
+    if (!climate || !baseClimate) return
+    setReportStatus('Gerando relatório…')
+    const tab = preview ? window.open('', '_blank') : null
     try {
-      const { exportReport } = await import('./report')
-      exportReport(location, farm, climate, strategies, ndvi, problems, plan, impact, terrain, { rainPct, tempDelta })
-      setReportStatus('PDF gerado.')
-    } catch { setReportStatus('Falha ao gerar o PDF.') }
+      const { buildReport } = await import('./report')
+      const pdf = buildReport({ location, farm, climate, nasa: baseClimate, strategies, ndvi, terrain, problems, plan, impact, scenario: { rainPct, tempDelta } })
+      if (preview && tab) { tab.location.href = String(pdf.output('bloburl')); setReportStatus('Relatório aberto em outra aba.') }
+      else { pdf.save('EarthVision-relatorio-' + new Date().toISOString().slice(0, 10) + '.pdf'); setReportStatus('Relatório baixado.') }
+    } catch { tab?.close(); setReportStatus('Falha ao gerar o relatório. Tente novamente.') }
   }
   const phase = yearPhase[year]
   const cards = [
@@ -257,7 +259,7 @@ function App() {
               <div className="months">{monthNames.map((m, i) => <button key={m} className={'chip ' + (i === farm.month ? 'picked' : '')} onClick={() => update('month', i)}>{m}</button>)}</div>
               <p className="season"><b>{season.name}.</b> {season.text}{climate?.months[farm.month].rain != null && <> Chuva histórica em {monthNames[farm.month]}: {format(climate.months[farm.month].rain, 0)} mm.</>}</p>
               <h3>O que está plantado agora (ou foi colhido)?</h3>
-              <div className="crop-cards">{cropList.map((key) => <button key={key} className={'crop-card ' + (key === farm.crop ? 'picked' : '')} onClick={() => update('crop', key)}><strong>{crops[key].name}</strong><small>{crops[key].kind} · {crops[key].family}</small></button>)}</div>
+              <div className="crop-cards">{[...cropList].sort((a, b) => crops[a].name.localeCompare(crops[b].name, 'pt-BR')).map((key) => <button key={key} type="button" aria-pressed={key === farm.crop} className={'crop-card ' + (key === farm.crop ? 'picked' : '')} onClick={() => update('crop', key)}><strong>{crops[key].name}</strong><small>{crops[key].kind} · {crops[key].family}</small></button>)}</div>
               <p className="hint">{crops[farm.crop].description}</p>
             </div>
             <div className="panel pad">
@@ -280,7 +282,7 @@ function App() {
 
         {step === 3 && <section className="section step-panel">
           <div className="section-head"><div><p className="eyebrow"><Leaf size={16} /> Passo 4</p><h2>Proposta de plantio</h2><p>Depois de {crops[farm.crop].name.toLowerCase()}, plantando em {monthNames[farm.month].toLowerCase()} ({season.name.toLowerCase()}), com foco em {priorities[farm.priority].name.toLowerCase()}.</p></div>
-            <button className="button secondary" disabled={!climate} onClick={download}><FileDown size={18} /> Baixar relatório PDF</button></div>
+            <button className="button secondary" disabled={!climate} onClick={() => download()}><FileDown size={18} /> Baixar relatório PDF</button></div>
           <p className="report-status" role="status">{reportStatus}</p>
           <div className="panel whatif"><div><strong>E se o clima mudar?</strong><p>Mexa nos controles para testar um ano mais seco, mais chuvoso ou mais quente. Todas as notas e o plano são recalculados.</p></div>
             <label>Chuva {rainPct > 0 ? '+' : ''}{rainPct}%<input type="range" min={-50} max={30} step={5} value={rainPct} onChange={(e) => setRainPct(Number(e.target.value))} /></label>
@@ -338,6 +340,10 @@ function App() {
             </div>
             <h3 className="sub">Calendário sugerido</h3>
             <ol className="timeline">{plan.seasons.map((s) => <li key={s.label} className="panel"><small>{s.label}</small><strong>{s.crop}</strong></li>)}</ol>
+            <div className="panel report-card"><div className="report-cover"><span>PDF</span><b>Relatório da sua fazenda</b><small>{location.name}</small></div>
+              <div className="report-body"><h3>Seu relatório está pronto</h3><p>Montado com as suas respostas, em linguagem simples, para ler e levar ao agrônomo.</p>
+                <ul className="report-list"><li><Check size={14} /> Resumo para você e suas respostas</li><li><Check size={14} /> Gráfico do clima e calendário de meses vulneráveis</li><li><Check size={14} /> Problemas da região e El Niño / La Niña</li><li><Check size={14} /> Comparação das estratégias com notas, custos e lucros</li><li><Check size={14} /> Gráficos de lucro e saúde do solo em 3 anos</li><li><Check size={14} /> Lista "o que fazer agora"</li><li><Check size={14} /> Tabela com os dados oficiais da NASA e links das fontes</li></ul>
+                <div className="report-actions"><button className="button primary-solid" onClick={() => download()}><FileDown size={17} /> Baixar PDF</button><button className="button secondary" onClick={() => download(true)}>Visualizar</button><span role="status">{reportStatus}</span></div></div></div>
             <div className="panel pad story"><h3>Resumo do plano</h3>
               <p>Mantendo {crops[farm.crop].name.toLowerCase()} na safra principal e usando a 2ª safra para {[plan.cash?.name, plan.cover?.name].filter(Boolean).join(' e ').toLowerCase()}, o talhão {gain >= 0 ? 'ganha cerca de ' + money(gain) : 'tem cerca de ' + money(-gain) + ' a menos de lucro'} em 3 anos frente ao pousio{scenario !== 'neutral' ? ', considerando anos de ' + phaseNames[scenario] : ''}, e a saúde do solo vai de 50 para {last.soil} (sem rotação: {last.baselineSoil}).</p>
               {plan.cover && <p>A cobertura com {plan.cover.name.toLowerCase()} não gera venda, mas protege o solo{plan.cover.nSaving ? ' e deixa nitrogênio para a próxima safra' : ''}.</p>}
@@ -349,7 +355,7 @@ function App() {
         <div className="step-nav">
           <button className="button secondary" disabled={step === 0} onClick={() => setStep(step - 1)}><ArrowLeft size={17} /> Voltar</button>
           {step < steps.length - 1 ? <button className="button primary-solid" onClick={() => setStep(step + 1)}>Próximo: {steps[step + 1].title} <ArrowRight size={17} /></button>
-            : <button className="button primary-solid" disabled={!climate} onClick={download}><FileDown size={17} /> Baixar relatório</button>}
+            : <button className="button primary-solid" disabled={!climate} onClick={() => download()}><FileDown size={17} /> Baixar relatório</button>}
         </div>
 
         <section id="desafio" className="section">

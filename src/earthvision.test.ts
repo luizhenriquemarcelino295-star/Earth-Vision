@@ -18,13 +18,13 @@ vi.mock('jspdf', async (original) => {
       constructor() {
         super()
         this.save = vi.fn((filename: string) => {
-          expect(filename).toMatch(/^EarthVision-rotacao-.*\.pdf$/)
+          expect(filename).toMatch(/^EarthVision-relatorio-.*\.pdf$/)
           const data = this.output()
           expect(data.startsWith('%PDF-')).toBe(true)
-          expect(data).toContain('Relatório de rotação de culturas')
-          expect(data).toContain('Proposta de plantio')
-          expect(data).toContain('Rotação atual')
-          expect(data).toContain('Problemas da regi')
+          expect(data).toContain('RESUMO PARA VOC')
+          expect(data).toContain('Dados oficiais da NASA')
+          expect(data).toContain('Atual: ')
+          expect(data).toContain('PRECTOTCORR')
           return this
         }) as unknown as typeof this.save
       }
@@ -35,7 +35,7 @@ vi.mock('jspdf', async (original) => {
 it('gera um PDF com as três estratégias', () => {
   expect.assertions(6)
   const strategies = compare(defaultFarm, climate)
-  exportReport(locations[0], defaultFarm, climate, strategies, null, regionProblems(climate, null, impact, 'sandy'), longTermPlan(defaultFarm, strategies, climate, impact), impact)
+  exportReport({ location: locations[0], farm: defaultFarm, climate, nasa: climate, strategies, ndvi: null, terrain: null, problems: regionProblems(climate, null, impact, 'sandy'), plan: longTermPlan(defaultFarm, strategies, climate, impact), impact, scenario: { rainPct: 0, tempDelta: 0 } })
 })
 
 describe('NASA POWER', () => {
@@ -80,7 +80,7 @@ describe('rotação de culturas', () => {
   })
   it('respeita mercado, equipamento e prioridade', () => {
     const noMarket = alternativesOf(compare({ ...defaultFarm, markets: [], smallSeedPlanter: false }, climate))
-    expect(noMarket).toHaveLength(0)
+    expect(noMarket.map((item) => item.id)).toEqual(['pigeonpea'])
     const profit = alternativesOf(compare({ ...defaultFarm, priority: 'profit' }, climate))
     const soil = alternativesOf(compare({ ...defaultFarm, priority: 'soil' }, climate))
     expect(profit[0].kind).not.toBe('cobertura')
