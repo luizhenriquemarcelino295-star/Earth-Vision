@@ -6,22 +6,35 @@ export const locations: Location[] = [
   { name: 'Barreiras, BA', lat: -12.15, lon: -44.99 },
 ]
 export const year = 2025
-export const period = '01 jan a 31 dez 2025'
+export const years = [2025, 2024, 2023, 2022, 2021, 2020]
+export const periodOf = (y: number) => '01 jan a 31 dez ' + y
+export const period = periodOf(year)
 export const powerDocs = 'https://power.larc.nasa.gov/docs/services/api/temporal/daily/'
-export const challenge = 'https://www.spaceappschallenge.org/2026/challenges/field-shift-adapting-farms-with-nasa-data/'
+export const challenge = 'https://www.spaceappschallenge.org/2026/challenges/adapting-farms-with-nasa-data/'
 export const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
 const parameters = ['T2M', 'PRECTOTCORR', 'ALLSKY_SFC_SW_DWN'] as const
+/** Parâmetros extras da NASA POWER (comunidade AG). Opcionais: a cópia local antiga não os contém. */
+export const extraParameters = ['GWETROOT', 'GWETTOP', 'T2M_MAX', 'T2M_MIN', 'RH2M'] as const
 type Parameter = typeof parameters[number]
+type Extra = typeof extraParameters[number]
+export const heatThreshold = 35
 type Series = Record<string, number>
 interface RawPower {
   header: { fill_value: number }
-  properties: { parameter: Record<Parameter, Series> }
+  properties: { parameter: Record<Parameter, Series> & Partial<Record<Extra, Series>> }
 }
 export interface Month {
   name: string
   rain: number | null
   temperature: number | null
   solar: number | null
+  /** Umidade do solo na zona radicular (0–1), MERRA-2/GMAO via NASA POWER */
+  soilMoisture: number | null
+  /** Dias com máxima acima de 35 °C */
+  heatDays: number | null
+  tMax: number | null
+  tMin: number | null
+  humidity: number | null
 }
 export interface Climate {
   months: Month[]
@@ -29,30 +42,35 @@ export interface Climate {
   temperature: number | null
   solar: number | null
   dryMonths: number | null
+  soilMoisture: number | null
+  heatDays: number | null
   coverage: Record<Parameter, number>
   origin: 'live' | 'bundled'
   url: string
+  year: number
 }
-export function powerUrl({lat, lon}: Location) {
+export function powerUrl({lat, lon}: Location, year = 2025) {
   return 'https://power.larc.nasa.gov/api/temporal/daily/point?' + new URLSearchParams({
-    parameters: parameters.join(','), community: 'AG', latitude: String(lat), longitude: String(lon),
+    parameters: [...parameters, ...extraParameters].join(','), community: 'AG', latitude: String(lat), longitude: String(lon),
     start: year + '0101', end: year + '1231', format: 'JSON',
   })
 }
 const sum = (values: number[]) => values.reduce((total, value) => total + value, 0)
-export function parsePower(raw: unknown): Omit<Climate, 'origin' | 'url'> {
+export function parsePower(raw: unknown, year = 2025): Omit<Climate, 'origin' | 'url' | 'year'> {
   const json = raw as Partial<RawPower> | null
   const source = json?.properties?.parameter
   if (!source || !parameters.every((key) => source[key] && typeof source[key] === 'object')) {
     throw new Error('A NASA POWER retornou uma série inválida.')
   }
-  const samples = (key: Parameter, month: number, days: number) => Array.from({ length: days }, (_, day) => {
+  const samples = (key: Parameter | Extra, month: number, days: number) => Array.from({ length: days }, (_, day) => {
     const date = String(year) + String(month + 1).padStart(2, '0') + String(day + 1).padStart(2, '0')
-    return source[key][date]
-  }).filter((value) => Number.isFinite(value) && value !== (json?.header?.fill_value ?? -999) && value > -900 && (key === 'T2M' || value >= 0))
+    return source[key]?.[date] as number
+  }).filter((value) => Number.isFinite(value) && value !== (json?.header?.fill_value ?? -999) && value > -900 && (key.startsWith('T2M') || value >= 0))
   const buckets = monthNames.map((name, month) => {
     const days = new Date(Date.UTC(year, month + 1, 0)).getUTCDate()
-    return { name, days, rain: samples('PRECTOTCORR', month, days), temp: samples('T2M', month, days), solar: samples('ALLSKY_SFC_SW_DWN', month, days) }
+    return { name, days, rain: samples('PRECTOTCORR', month, days), temp: samples('T2M', month, days), solar: samples('ALLSKY_SFC_SW_DWN', month, days),
+      wet: samples('GWETROOT', month, days).filter((value) => value <= 1), tMax: samples('T2M_MAX', month, days),
+      tMin: samples('T2M_MIN', month, days), humidity: samples('RH2M', month, days) }
   })
   const temp = buckets.flatMap((month) => month.temp)
   const solar = buckets.flatMap((month) => month.solar)
@@ -65,28 +83,37 @@ export function parsePower(raw: unknown): Omit<Climate, 'origin' | 'url'> {
     rain: month.rain.length === month.days ? sum(month.rain) : null,
     temperature: mean(month.temp),
     solar: mean(month.solar),
+    soilMoisture: mean(month.wet),
+    heatDays: month.tMax.length ? month.tMax.filter((value) => value > heatThreshold).length : null,
+    tMax: mean(month.tMax),
+    tMin: mean(month.tMin),
+    humidity: mean(month.humidity),
   }))
+  const wet = buckets.flatMap((month) => month.wet)
+  const tMax = buckets.flatMap((month) => month.tMax)
   return {
     months,
     rain: rain.length === days ? sum(rain) : null,
     temperature: mean(temp),
     solar: mean(solar),
     dryMonths: rain.length === days ? months.filter((month) => month.rain !== null && month.rain < 60).length : null,
+    soilMoisture: mean(wet),
+    heatDays: tMax.length ? tMax.filter((value) => value > heatThreshold).length : null,
     coverage: { T2M: temp.length, PRECTOTCORR: rain.length, ALLSKY_SFC_SW_DWN: solar.length },
   }
 }
-export async function fetchClimate(location: Location, signal: AbortSignal): Promise<Climate> {
-  const url = powerUrl(location)
+export async function fetchClimate(location: Location, signal: AbortSignal, year = 2025): Promise<Climate> {
+  const url = powerUrl(location, year)
   const load = async (source: string, requestSignal: AbortSignal) => {
     const response = await fetch(source, { signal: requestSignal })
     if (!response.ok) throw new Error('NASA POWER indisponível (HTTP ' + response.status + ').')
-    return parsePower(await response.json())
+    return parsePower(await response.json(), year)
   }
   try {
-    return { ...await load(url, AbortSignal.any([signal, AbortSignal.timeout(12000)])), url, origin: 'live' }
+    return { ...await load(url, AbortSignal.any([signal, AbortSignal.timeout(12000)])), url, year, origin: 'live' }
   } catch (error) {
-    if (signal.aborted || location.lat !== locations[0].lat || location.lon !== locations[0].lon) throw error
-    return { ...await load(import.meta.env.BASE_URL + 'power-sorriso-2025.json', signal), url, origin: 'bundled' }
+    if (signal.aborted || year !== 2025 || Math.abs(location.lat - locations[0].lat) > 0.25 || Math.abs(location.lon - locations[0].lon) > 0.25) throw error
+    return { ...await load(import.meta.env.BASE_URL + 'power-sorriso-2025.json', signal), url, year, origin: 'bundled' }
   }
 }
 export const format = (value: number | null, digits = 1) => value === null ? '—' :
