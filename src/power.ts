@@ -1,17 +1,14 @@
+import { bundledLocation, capitalExamples } from './capitals'
+
 export interface Location { lat: number; lon: number; name: string }
-export const locations: Location[] = [
-  { name: 'Sorriso, MT', lat: -12.55, lon: -55.71 },
-  { name: 'Rio Verde, GO', lat: -17.79, lon: -50.92 },
-  { name: 'Londrina, PR', lat: -23.31, lon: -51.16 },
-  { name: 'Barreiras, BA', lat: -12.15, lon: -44.99 },
-]
+export const locations: Location[] = capitalExamples('en')
 export const year = 2025
 export const years = [2025, 2024, 2023, 2022, 2021, 2020]
-export const periodOf = (y: number) => '01 jan a 31 dez ' + y
+export const periodOf = (y: number) => 'Jan 1 to Dec 31 ' + y
 export const period = periodOf(year)
 export const powerDocs = 'https://power.larc.nasa.gov/docs/services/api/temporal/daily/'
 export const challenge = 'https://www.spaceappschallenge.org/2026/challenges/adapting-farms-with-nasa-data/'
-export const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+export const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const parameters = ['T2M', 'PRECTOTCORR', 'ALLSKY_SFC_SW_DWN'] as const
 /** Parâmetros extras da NASA POWER (comunidade AG). Opcionais: a cópia local antiga não os contém. */
 export const extraParameters = ['GWETROOT', 'GWETTOP', 'T2M_MAX', 'T2M_MIN', 'RH2M'] as const
@@ -20,7 +17,7 @@ type Extra = typeof extraParameters[number]
 export const heatThreshold = 35
 export const frostThreshold = 2
 export const heavyRainThreshold = 50
-/** Evapotranspiração de referência (Hargreaves-Samani, forma com radiação): mm/dia. */
+/** Evapotranspiration de referência (Hargreaves-Samani, forma com radiação): mm/day. */
 export const referenceEt = (temperature: number, solar: number) => Math.max(0, 0.0135 * (temperature + 17.8) * solar * 0.408)
 type Series = Record<string, number>
 interface RawPower {
@@ -32,7 +29,7 @@ export interface Month {
   rain: number | null
   temperature: number | null
   solar: number | null
-  /** Umidade do solo na zona radicular (0–1), MERRA-2/GMAO via NASA POWER */
+  /** Soil moisture na zona radicular (0–1), MERRA-2/GMAO via NASA POWER */
   soilMoisture: number | null
   /** Dias com máxima acima de 35 °C */
   heatDays: number | null
@@ -43,7 +40,7 @@ export interface Month {
   frostDays: number | null
   /** Dias com chuva ≥ 50 mm (chuva extrema / erosão) */
   heavyRainDays: number | null
-  /** Evapotranspiração de referência do mês (mm) */
+  /** Evapotranspiration de referência do mês (mm) */
   eto: number | null
 }
 export interface Climate {
@@ -73,7 +70,7 @@ export function parsePower(raw: unknown, year = 2025): Omit<Climate, 'origin' | 
   const json = raw as Partial<RawPower> | null
   const source = json?.properties?.parameter
   if (!source || !parameters.every((key) => source[key] && typeof source[key] === 'object')) {
-    throw new Error('A NASA POWER retornou uma série inválida.')
+    throw new Error('NASA POWER returned an invalid series.')
   }
   const samples = (key: Parameter | Extra, month: number, days: number) => Array.from({ length: days }, (_, day) => {
     const date = String(year) + String(month + 1).padStart(2, '0') + String(day + 1).padStart(2, '0')
@@ -88,7 +85,7 @@ export function parsePower(raw: unknown, year = 2025): Omit<Climate, 'origin' | 
   const temp = buckets.flatMap((month) => month.temp)
   const solar = buckets.flatMap((month) => month.solar)
   const rain = buckets.flatMap((month) => month.rain)
-  if (!temp.length && !solar.length && !rain.length) throw new Error('A NASA POWER não tem dados válidos para este ponto.')
+  if (!temp.length && !solar.length && !rain.length) throw new Error('NASA POWER has no valid data for this location.')
   const days = sum(buckets.map((month) => month.days))
   const mean = (values: number[]) => values.length ? sum(values) / values.length : null
   const months = buckets.map((month) => ({
@@ -125,18 +122,18 @@ export async function fetchClimate(location: Location, signal: AbortSignal, year
   const url = powerUrl(location, year)
   const load = async (source: string, requestSignal: AbortSignal) => {
     const response = await fetch(source, { signal: requestSignal })
-    if (!response.ok) throw new Error('NASA POWER indisponível (HTTP ' + response.status + ').')
+    if (!response.ok) throw new Error('NASA POWER unavailable (HTTP ' + response.status + ').')
     return parsePower(await response.json(), year)
   }
   try {
     return { ...await load(url, AbortSignal.any([signal, AbortSignal.timeout(12000)])), url, year, origin: 'live' }
   } catch (error) {
-    if (signal.aborted || year !== 2025 || Math.abs(location.lat - locations[0].lat) > 0.25 || Math.abs(location.lon - locations[0].lon) > 0.25) throw error
+    if (signal.aborted || year !== 2025 || Math.abs(location.lat - bundledLocation.lat) > 0.25 || Math.abs(location.lon - bundledLocation.lon) > 0.25) throw error
     return { ...await load(import.meta.env.BASE_URL + 'power-sorriso-2025.json', signal), url, year, origin: 'bundled' }
   }
 }
 export const format = (value: number | null, digits = 1) => value === null ? '—' :
-  new Intl.NumberFormat('pt-BR', { maximumFractionDigits: digits, minimumFractionDigits: digits }).format(value)
+  new Intl.NumberFormat('en-US', { maximumFractionDigits: digits, minimumFractionDigits: digits }).format(value)
 
 /** Cenário "e se": muda a chuva (%) e a temperatura (°C) de todos os meses. */
 export function applyScenario(climate: Climate, rainPercent: number, temperatureDelta: number): Climate {
@@ -156,3 +153,6 @@ export function applyScenario(climate: Climate, rainPercent: number, temperature
     temperature: climate.temperature === null ? null : climate.temperature + temperatureDelta,
     dryMonths: months.every((m) => m.rain !== null) ? months.filter((m) => m.rain! < 60).length : null }
 }
+
+export const fahrenheit = (celsius: number | null): number | null => celsius === null ? null : celsius * 9 / 5 + 32
+export const fahrenheitDelta = (celsius: number): number => celsius * 9 / 5

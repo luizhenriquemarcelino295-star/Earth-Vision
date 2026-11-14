@@ -1,6 +1,7 @@
+import { bundledLocation } from './capitals'
 import { describe, expect, it, vi } from 'vitest'
 import sample from '../public/power-sorriso-2025.json'
-import { applyScenario, locations, parsePower, powerUrl, type Climate } from './power'
+import { applyScenario, parsePower, powerUrl, type Climate } from './power'
 import { alternativesOf, candidates, compare, cropList, crops, defaultFarm, longTermPlan, regionProblems, seasonOf, vulnerabilityCalendar, type Crop } from './rotation'
 import { parseTerrain } from './terrain'
 import { ensoImpact } from './enso'
@@ -8,8 +9,8 @@ import { parsePlaces } from './geo'
 import { exportReport } from './report'
 import { ndviUrls, parseNdvi } from './ndvi'
 
-const climate: Climate = { ...parsePower(sample), url: powerUrl(locations[0]), year: 2025, origin: 'bundled' }
-const impact = ensoImpact(locations[0])
+const climate: Climate = { ...parsePower(sample), url: powerUrl(bundledLocation), year: 2025, origin: 'bundled' }
+const impact = ensoImpact(bundledLocation)
 
 vi.mock('jspdf', async (original) => {
   const { jsPDF } = await original<typeof import('jspdf')>()
@@ -21,9 +22,9 @@ vi.mock('jspdf', async (original) => {
           expect(filename).toMatch(/^EarthVision-relatorio-.*\.pdf$/)
           const data = this.output()
           expect(data.startsWith('%PDF-')).toBe(true)
-          expect(data).toContain('RESUMO PARA VOC')
-          expect(data).toContain('Dados oficiais da NASA')
-          expect(data).toContain('Atual: ')
+          expect(data).toContain('EXECUTIVE SUMMARY')
+          expect(data).toContain('Official NASA data')
+          expect(data).toContain('Current: ')
           expect(data).toContain('PRECTOTCORR')
           return this
         }) as unknown as typeof this.save
@@ -35,7 +36,7 @@ vi.mock('jspdf', async (original) => {
 it('gera um PDF com as três estratégias', () => {
   expect.assertions(6)
   const strategies = compare(defaultFarm, climate)
-  exportReport({ location: locations[0], farm: defaultFarm, climate, nasa: climate, strategies, ndvi: null, terrain: null, problems: regionProblems(climate, null, impact, 'sandy'), plan: longTermPlan(defaultFarm, strategies, climate, impact), impact, scenario: { rainPct: 0, tempDelta: 0 } })
+  exportReport({ location: bundledLocation, farm: defaultFarm, climate, nasa: climate, strategies, ndvi: null, terrain: null, problems: regionProblems(climate, null, impact, 'sandy'), plan: longTermPlan(defaultFarm, strategies, climate, impact), impact, scenario: { rainPct: 0, tempDelta: 0 } })
 })
 
 describe('NASA POWER', () => {
@@ -83,8 +84,8 @@ describe('rotação de culturas', () => {
     expect(noMarket.map((item) => item.id)).toEqual(['pigeonpea'])
     const profit = alternativesOf(compare({ ...defaultFarm, priority: 'profit' }, climate))
     const soil = alternativesOf(compare({ ...defaultFarm, priority: 'soil' }, climate))
-    expect(profit[0].kind).not.toBe('cobertura')
-    expect(soil[0].kind).toBe('cobertura')
+    expect(profit[0].kind).not.toBe('cover crop')
+    expect(soil[0].kind).toBe('cover crop')
     const forage = alternativesOf(compare({ ...defaultFarm, priority: 'forage', cattle: true }, climate))
     expect(crops[forage[0].id as Crop].forage).toBe(true)
     const custom = compare({ ...defaultFarm, priority: 'profit', prices: { corn: { price: 100 } } }, climate).find((s) => s.id === 'corn')!
@@ -93,9 +94,9 @@ describe('rotação de culturas', () => {
   it('considera tipos de solo e mercados extras', () => {
     const wet = compare({ ...defaultFarm, crop: 'corn', month: 9, soil: 'wet', markets: ['rice', 'soybean', 'coffee'] }, climate)
     const soy = wet.find((s) => s.id === 'soybean')
-    expect(soy?.risks.some((r) => r.includes('encharcado'))).toBe(true)
-    expect(alternativesOf(wet).every((s) => crops[s.id as Crop].kind === 'cobertura' || ['rice', 'soybean'].includes(s.id))).toBe(true)
-    expect(regionProblems(climate, null, impact, 'shallow').some((p) => p.title === 'Solo raso')).toBe(true)
+    expect(soy?.risks.some((r) => r.includes('waterlogging'))).toBe(true)
+    expect(alternativesOf(wet).every((s) => crops[s.id as Crop].kind === 'cover crop' || ['rice', 'soybean'].includes(s.id))).toBe(true)
+    expect(regionProblems(climate, null, impact, 'shallow').some((p) => p.title === 'Shallow soil')).toBe(true)
     const plan = longTermPlan(defaultFarm, compare(defaultFarm, climate), climate, impact)
     expect(plan.seasons.every((s) => s.action && s.months && Number.isFinite(s.profitHa))).toBe(true)
   })
@@ -108,9 +109,9 @@ describe('rotação de culturas', () => {
     if (a && b) expect(b.scores[0]!).toBeLessThan(a.scores[0]!)
   })
   it('classifica a safra pelo mês', () => {
-    expect(seasonOf(9).name).toContain('verão')
-    expect(seasonOf(1).name).toContain('Safrinha')
-    expect(seasonOf(6).name).toContain('Inverno')
+    expect(seasonOf(9).name).toContain('Summer')
+    expect(seasonOf(1).name).toContain('Second growing season')
+    expect(seasonOf(6).name).toContain('Winter')
   })
   it('não atribui nota climática sem dados', () => {
     expect(compare(defaultFarm, null).every((s) => s.total === null)).toBe(true)
@@ -123,17 +124,17 @@ describe('rotação de culturas', () => {
     expect(last.profit.lanina).toBeLessThan(last.profit.neutral)
   })
   it('identifica problemas, erosão e meses vulneráveis', () => {
-    expect(impact.region).toContain('Centro-Oeste')
+    expect(impact.region).toContain('Central-West')
     expect(ensoImpact({ lat: -30, lon: -53, name: '' }).lanina).toBeLessThan(1)
     const terrain = parseTerrain({ results: [{ elevation: 500 }, { elevation: 560 }, { elevation: 470 }, { elevation: 500 }, { elevation: 500 }] })
     expect(terrain.slope).toBeCloseTo(9)
-    expect(terrain.erosion).toBe('alto')
+    expect(terrain.erosion).toBe('high')
     const problems = regionProblems(climate, null, impact, 'sandy', terrain)
-    expect(problems.some((p) => p.title === 'Terreno inclinado')).toBe(true)
-    expect(problems.some((p) => p.title === 'Déficit hídrico' || p.title === 'Estação seca longa')).toBe(true)
+    expect(problems.some((p) => p.title === 'Sloping terrain')).toBe(true)
+    expect(problems.some((p) => p.title === 'Water deficit' || p.title === 'Long dry season')).toBe(true)
     const calendar = vulnerabilityCalendar(climate, null)
     expect(calendar).toHaveLength(12)
-    expect(calendar[6].flags).toContain('seca')
+    expect(calendar[6].flags).toContain('drought')
     expect(climate.eto).toBeGreaterThan(1000)
   })
   it('lê a busca de cidades', () => {
@@ -164,7 +165,7 @@ describe('dados NASA adicionais', () => {
     expect(ndvi.months[0].ndvi).toBeCloseTo(0.7)
     expect(ndvi.months[7].ndvi).toBeNull()
     expect(ndvi.composites).toBe(3)
-    expect(ndviUrls(locations[0])).toHaveLength(3)
+    expect(ndviUrls(bundledLocation)).toHaveLength(3)
     expect(compare({ ...defaultFarm, month: 4, crop: 'corn' }, climate, ndvi).some((s) => s.windowNdvi !== null)).toBe(true)
   })
 })

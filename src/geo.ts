@@ -13,17 +13,17 @@ export function parsePlaces(raw: unknown): Place[] {
   }))
 }
 export async function searchPlaces(query: string, signal?: AbortSignal): Promise<Place[]> {
-  const url = 'https://geocoding-api.open-meteo.com/v1/search?' + new URLSearchParams({ name: query.trim(), count: '6', language: 'pt', format: 'json' })
+  const url = 'https://geocoding-api.open-meteo.com/v1/search?' + new URLSearchParams({ name: query.trim(), count: '6', language: 'en', format: 'json' })
   const response = await fetch(url, { signal })
-  if (!response.ok) throw new Error('Busca de cidades indisponível.')
+  if (!response.ok) throw new Error('City search is unavailable.')
   return parsePlaces(await response.json())
 }
 export function locateMe(): Promise<Location> {
   return new Promise((resolve, reject) => {
-    if (!('geolocation' in navigator)) { reject(new Error('Seu navegador não permite localização.')); return }
+    if (!('geolocation' in navigator)) { reject(new Error('Your browser does not support geolocation.')); return }
     navigator.geolocation.getCurrentPosition(
-      ({ coords }) => resolve({ lat: +coords.latitude.toFixed(4), lon: +coords.longitude.toFixed(4), name: 'Minha localização' }),
-      () => reject(new Error('Não foi possível obter sua localização. Busque pela cidade.')),
+      ({ coords }) => resolve({ lat: +coords.latitude.toFixed(4), lon: +coords.longitude.toFixed(4), name: 'My location' }),
+      () => reject(new Error('Could not get your location. Search by city.')),
       { timeout: 10000 },
     )
   })

@@ -39,7 +39,7 @@
 .enso{display:grid;grid-template-columns:auto 1fr;gap:12px;padding:16px;margin-bottom:16px;border-left:5px solid #888}.enso.elnino{border-left-color:#c0612b}.enso.lanina{border-left-color:#2c6fb3}.enso.neutral{border-left-color:#13844f}
 .enso p{color:var(--muted);font-size:13px;margin-top:3px}.enso-effects{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px}.enso-effects div{background:#f6f9f5;border-radius:9px;padding:10px;font-size:13px;display:grid;gap:4px}.enso-effects small{grid-column:1/-1;color:var(--muted)}
 .sub{margin:18px 0 10px;font-size:17px}
-.problems{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}.problem{display:flex;gap:10px;padding:13px;border-left:4px solid #d9a441}.problem.alto{border-left-color:#c2412b}.problem svg{flex:none;color:#b8652a;margin-top:2px}.problem p{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.45}
+.problems{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}.problem{display:flex;gap:10px;padding:13px;border-left:4px solid #d9a441}.problem.high{border-left-color:#c2412b}.problem svg{flex:none;color:#b8652a;margin-top:2px}.problem p{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.45}
 .metrics{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))!important}
 .chart-card{margin-top:14px}
 .farm-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
@@ -63,7 +63,7 @@ ul.good li{color:#205c41}
 .support{display:flex;gap:8px;align-items:flex-start;background:#fff8e6;border:1px solid #f0dca8;color:#6b4d0e;border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.45;margin:0 0 10px}.support svg{flex:none;margin-top:1px}
 .scenario-chip{background:#fde9dc!important;color:#8a3b12!important}
 .calendar{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;padding:10px}.cal-month{display:flex;flex-direction:column;gap:3px;align-items:stretch;text-align:center;padding:6px 3px;border-radius:8px;background:#f4f8f3;min-width:0}.cal-month.flagged{background:#fff6ef}.cal-month b{font-size:12px}.cal-month small{font-size:10px;color:var(--muted)}
-.flag{font-size:10px;font-weight:650;border-radius:5px;padding:2px 3px;overflow:hidden;text-overflow:ellipsis}.flag.ok{background:#dff0dc;color:#205c41}.flag.seca{background:#fbe1c8;color:#8a4b12}.flag.calor{background:#f9d3cc;color:#8f2a1b}.flag.geada{background:#d9e8fb;color:#1f4f8a}.flag.enxurrada{background:#d6e4f2;color:#24507a}.flag.descoberto{background:#efe4d2;color:#6b4f21}
+.flag{font-size:10px;font-weight:650;border-radius:5px;padding:2px 3px;overflow:hidden;text-overflow:ellipsis}.flag.ok{background:#dff0dc;color:#205c41}.flag.drought{background:#fbe1c8;color:#8a4b12}.flag.heat{background:#f9d3cc;color:#8f2a1b}.flag.frost{background:#d9e8fb;color:#1f4f8a}.flag.runoff{background:#d6e4f2;color:#24507a}.flag.bare-soil{background:#efe4d2;color:#6b4f21}
 .problem .src{display:block;margin-top:4px;font-size:10px;color:#8a998f;text-transform:uppercase;letter-spacing:.05em}
 .whatif{display:flex;flex-wrap:wrap;gap:16px;align-items:center;padding:14px 18px;margin-bottom:14px;border-left:5px solid #c0612b}.whatif>div{flex:1 1 260px}.whatif p{font-size:13px;color:var(--muted);margin-top:3px}.whatif label{display:grid;gap:4px;font-size:12px;font-weight:650;min-width:180px}.whatif input[type=range]{padding:0;accent-color:#13844f}
 .compare-line{font-weight:600;color:#365044!important;margin-top:6px}
@@ -148,3 +148,8 @@ details.enso>summary span{flex:1;color:#365044}details.enso>summary em{font-styl
 .source-box a{align-self:flex-start;margin-top:auto;font-size:12px;font-weight:700}
 @media(max-width:900px){.source-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.source-grid{grid-template-columns:minmax(0,1fr)}}
+
+.header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.language-picker{width:auto;max-width:100%;font-weight:650}
+.problem.alto{border-left-color:#c0612b}
+.flag.seca,.flag.calor,.flag.geada,.flag.enxurrada,.flag.descoberto{background:#fff1df;color:#774b15}
